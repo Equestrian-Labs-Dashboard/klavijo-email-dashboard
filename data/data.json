@@ -3,43 +3,230 @@
     "brand": "Klaviyo",
     "source": "Klaviyo",
     "last_updated": "2026-09-08",
-    "note": "Datos semilla tomados manualmente de la hoja CORRO (sección EMAIL MARKETING / Klaviyo). Este archivo se sobreescribe automáticamente por el workflow de GitHub Actions cuando se conecta la fuente en vivo."
+    "note": "Actualizado automáticamente desde Google Sheets vía GitHub Actions."
   },
-  "months": ["ene-26", "feb-26", "mar-26", "abr-26", "may-26", "jun-26", "jul-26", "ago-26"],
-  "gross_sales": [13311, 5954, 7011, 5312, 12023, 6918, 10002, 4101],
-  "gross_sales_2025": {
-    "note": "Único bloque con histórico 2025 completo en la hoja CORRO (fila 43). El resto de las métricas de Email Marketing (Active Profiles, Campaigns, Flows) están vacías en 2025, por eso el YoY solo se puede calcular para Gross Sales por ahora.",
-    "months": ["ene-25", "feb-25", "mar-25", "abr-25", "may-25", "jun-25", "jul-25", "ago-25", "sep-25", "oct-25", "nov-25", "dic-25"],
-    "values": [7050, 17000, 16300, 11300, 27600, 20300, 20500, 12000, 11100, 13600, 19900, 11554]
-  },
-  "active_profiles": [50118, 46134, 45972, 46134, 46280, 46210, 46000, 45614],
-  "active_base_growth_pct": [null, -7.95, -0.35, 0.35, 0.32, -0.15, -0.45, -0.84],
+  "months": [
+    "ene-26",
+    "feb-26",
+    "mar-26",
+    "abr-26",
+    "may-26",
+    "jun-26",
+    "jul-26",
+    "ago-26"
+  ],
+  "gross_sales": [
+    13311.0,
+    5954.0,
+    7011.0,
+    5312.0,
+    12023.0,
+    6918.0,
+    null,
+    null
+  ],
+  "active_profiles": [
+    50118.0,
+    46134.0,
+    45972.0,
+    46134.0,
+    46280.0,
+    46210.0,
+    null,
+    null
+  ],
+  "active_base_growth_pct": [
+    null,
+    -7.95,
+    -0.35,
+    0.35,
+    0.32,
+    -0.15,
+    null,
+    null
+  ],
   "campaigns": {
-    "open_rate_pct": [53.60, 56.04, 55.30, 56.45, 60.10, 60.40, 54.10, 54.10],
-    "ctr_pct": [0.30, 0.31, 0.27, 0.21, 0.22, 0.23, 0.01, 0.19],
-    "conversion_rate_pct": [0.01, 0.01, 0.01, 0.01, 0.00, 0.00, 0.19, 0.00],
-    "avg_usd_per_customer": [0.01, 0.01, 0.02, 0.01, 0.01, 0.01, 0.01, 0.01],
-    "aov": [145, 126, 147, 140, 173, 173, 137, 323],
-    "recipients": [432000, 249000, 244000, 234000, 629000, 629000, 490000, 186000],
-    "unique_opens": [223000, 127000, 134000, 132000, 376000, 378000, 264000, 100000],
-    "revenue": [9175, 2927, 5186, 3451, 3565, 3568, 4379, 3333],
-    "share_of_total_revenue_pct": [69, 49, 74, 65, 30, 52, 44, 81]
+    "open_rate_pct": [
+      53.6,
+      56.04,
+      55.3,
+      5645.0,
+      60.1,
+      60.4,
+      null,
+      null
+    ],
+    "ctr_pct": [
+      0.3,
+      0.31,
+      0.27,
+      0.21,
+      0.22,
+      0.23,
+      null,
+      null
+    ],
+    "conversion_rate_pct": [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.0,
+      0.0,
+      null,
+      null
+    ],
+    "avg_usd_per_customer": [
+      0.01,
+      0.01,
+      0.02,
+      0.01,
+      0.01,
+      0.01,
+      null,
+      null
+    ],
+    "aov": [
+      145.0,
+      126.0,
+      147.0,
+      140.0,
+      173.0,
+      173.0,
+      null,
+      null
+    ],
+    "recipients": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "unique_opens": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "revenue": [
+      9175.0,
+      2927.0,
+      5186.0,
+      3451.0,
+      3565.0,
+      3568.0,
+      null,
+      null
+    ],
+    "share_of_total_revenue_pct": [
+      69.0,
+      49.0,
+      74.0,
+      65.0,
+      30.0,
+      52.0,
+      null,
+      null
+    ]
   },
   "flows": {
-    "open_rate_pct": [41.50, 30.00, 48.00, 43.20, 45.50, 45.70, 44.40, 37.40],
-    "ctr_pct": [1.77, 1.35, 2.20, 2.00, 2.30, 2.31, 2.25, 2.22],
-    "conversion_rate_pct": [0.20, 0.22, 0.25, 0.22, 0.42, 0.42, 0.59, 0.33],
-    "avg_usd_per_customer": [0.62, 0.60, 0.32, 0.55, 1.05, 1.05, 0.95, 0.35],
-    "aov": [292, 271, 129, 247, 248, 248, 160, 106],
-    "recipients": [6390, 4300, 3620, 4520, 10000, 10000, 4200, 2130],
-    "unique_opens": [2560, 1260, 1730, 1950, 4530, 4560, 1870, 792],
-    "revenue": [4136, 3027, 1505, 2469, 8458, 3351, 3991, 767],
-    "share_of_total_revenue_pct": [31, 51, 21, 46, 70, 48, 40, 19]
-  },
-  "ytd_targets": {
-    "open_rate_pct": 60.00,
-    "ctr_pct": 2.00,
-    "conversion_rate_pct": 0.50,
-    "avg_usd_per_customer": 1.00
+    "open_rate_pct": [
+      41.5,
+      30.0,
+      48.0,
+      43.2,
+      45.5,
+      45.7,
+      null,
+      null
+    ],
+    "ctr_pct": [
+      1.77,
+      1.35,
+      2.2,
+      2.0,
+      2.3,
+      2.31,
+      null,
+      null
+    ],
+    "conversion_rate_pct": [
+      0.2,
+      0.22,
+      0.25,
+      0.22,
+      0.42,
+      0.42,
+      null,
+      null
+    ],
+    "avg_usd_per_customer": [
+      0.62,
+      0.6,
+      0.32,
+      0.55,
+      1.05,
+      1.05,
+      null,
+      null
+    ],
+    "aov": [
+      292.0,
+      271.0,
+      129.0,
+      247.0,
+      248.0,
+      248.0,
+      null,
+      null
+    ],
+    "recipients": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "unique_opens": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "revenue": [
+      4136.0,
+      3027.0,
+      1505.0,
+      2469.0,
+      8458.0,
+      3351.0,
+      null,
+      null
+    ],
+    "share_of_total_revenue_pct": [
+      31.0,
+      51.0,
+      21.0,
+      46.0,
+      70.0,
+      48.0,
+      null,
+      null
+    ]
   }
 }

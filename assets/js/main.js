@@ -1,9 +1,9 @@
 const CHART_COLORS = {
-  gold: "#C9A227",
-  sage: "#7C9A82",
+  indigo: "#6C63FF",
+  sage: "#22A06B",
   clay: "#E4572E",
-  grid: "rgba(246,242,233,0.08)",
-  text: "rgba(246,242,233,0.6)"
+  grid: "rgba(26,27,46,0.06)",
+  text: "rgba(26,27,46,0.55)"
 };
 
 const fmtUSD = (n) => n === null || n === undefined
@@ -17,8 +17,13 @@ const fmtPct = (n, digits = 1) => n === null || n === undefined ? "—" : `${n.t
 const fmtUSD2 = (n) => n === null || n === undefined ? "—" : "$" + n.toFixed(2);
 
 function deltaClass(value) {
-  if (value === null || value === undefined) return "";
+  if (value === null || value === undefined) return null;
   return value >= 0 ? "is-positive" : "is-negative";
+}
+
+function addDeltaClass(el, value) {
+  const cls = deltaClass(value);
+  if (cls) el.classList.add(cls);
 }
 
 function lastAndPrev(arr) {
@@ -69,7 +74,7 @@ function renderStatCards(data) {
   document.getElementById("active-profiles-value").textContent = fmtInt(profLast);
   const profDeltaEl = document.getElementById("active-profiles-delta");
   profDeltaEl.textContent = growth === null ? "—" : `${growth >= 0 ? "▲" : "▼"} ${Math.abs(growth).toFixed(2)}% vs mes anterior`;
-  profDeltaEl.classList.add(deltaClass(growth));
+  addDeltaClass(profDeltaEl, growth);
 
   // "Campañas enviadas" — the sheet doesn't track a raw campaign count, so we
   // surface recipients + period as the closest available proxy until that
@@ -149,7 +154,7 @@ function renderEvolution(data, metricPath) {
   const ctx = document.getElementById("evolutionChart");
   const series = getByPath(data, metricPath);
   if (evolutionChart) evolutionChart.destroy();
-  evolutionChart = lineChart(ctx, data.months, series, CHART_COLORS.gold, true);
+  evolutionChart = lineChart(ctx, data.months, series, CHART_COLORS.indigo, true);
 }
 
 function setupToggle(data) {
@@ -171,7 +176,7 @@ async function init() {
     renderLedger("campaigns-table", data.campaigns, data.campaigns);
     renderLedger("flows-table", data.flows, data.flows);
 
-    lineChart(document.getElementById("grossSalesChart"), data.months, data.gross_sales, CHART_COLORS.gold, true);
+    lineChart(document.getElementById("grossSalesChart"), data.months, data.gross_sales, CHART_COLORS.indigo, true);
     sparkline(document.getElementById("profilesSparkline"), data.active_profiles, CHART_COLORS.sage);
 
     renderEvolution(data, "gross_sales");

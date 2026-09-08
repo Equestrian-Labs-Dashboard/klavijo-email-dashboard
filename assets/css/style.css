@@ -1,20 +1,23 @@
 :root {
-  --ink: #12241F;
-  --moss: #2E4034;
-  --parchment: #F6F2E9;
-  --gold: #C9A227;
-  --sage: #7C9A82;
-  --clay: #E4572E;
-  --line: rgba(46, 64, 52, 0.16);
-  --line-strong: rgba(46, 64, 52, 0.32);
+  --ink: #1A1B2E;          /* headings / high-contrast text */
+  --indigo: #6C63FF;       /* primary brand accent (logo, hero number) */
+  --indigo-deep: #4A3FE0;  /* hovers / strong emphasis */
+  --lavender: #EEEDFB;     /* soft accent fills */
+  --parchment: #FFFFFF;    /* card surfaces */
+  --canvas: #F7F7FB;       /* page background */
+  --sage: #22A06B;         /* positive delta */
+  --clay: #E4572E;         /* negative delta */
+  --line: rgba(26, 27, 46, 0.10);
+  --line-strong: rgba(26, 27, 46, 0.18);
+  --muted: rgba(26, 27, 46, 0.55);
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--ink);
-  color: var(--parchment);
+  background: var(--canvas);
+  color: var(--ink);
   font-family: "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -30,23 +33,29 @@ h1, h2, .hero__number {
   justify-content: space-between;
   align-items: center;
   padding: 20px 32px;
-  border-bottom: 1px solid rgba(246, 242, 233, 0.12);
+  border-bottom: 1px solid var(--line);
+  background: var(--parchment);
 }
-.topbar__brand { display: flex; align-items: center; gap: 12px; }
+.topbar__brand { display: flex; align-items: center; gap: 10px; position: relative; }
+.topbar__dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--indigo);
+  position: absolute;
+  top: -6px; left: -2px;
+}
 .topbar__mark {
-  width: 36px; height: 36px;
-  border: 1px solid var(--gold);
-  color: var(--gold);
-  display: flex; align-items: center; justify-content: center;
-  font-family: "Fraunces", serif;
-  font-size: 14px;
-  border-radius: 2px;
+  width: 26px; height: 26px;
+  color: var(--indigo);
 }
-.topbar__title { margin: 0; font-size: 15px; font-weight: 600; }
-.topbar__subtitle { margin: 0; font-size: 12.5px; color: rgba(246,242,233,0.6); }
-.topbar__meta { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: rgba(246,242,233,0.6); }
+.topbar__word { line-height: 1.25; }
+.topbar__title { margin: 0; font-family: "Fraunces", serif; font-size: 19px; font-weight: 600; color: var(--ink); }
+.topbar__company { margin: 0; font-size: 13px; color: var(--ink); }
+.topbar__subtitle { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.topbar__meta { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--muted); }
 .tag {
-  border: 1px solid rgba(246,242,233,0.35);
+  border: 1px solid var(--line-strong);
+  color: var(--indigo-deep);
   padding: 2px 8px;
   border-radius: 2px;
   font-size: 11px;
@@ -68,8 +77,8 @@ h1, h2, .hero__number {
   border-bottom: 1px solid var(--line);
   align-items: end;
 }
-.hero__label { color: rgba(246,242,233,0.55); font-size: 13px; margin: 0 0 10px; }
-.hero__number { font-size: clamp(48px, 7vw, 76px); color: var(--gold); font-weight: 500; line-height: 1; }
+.hero__label { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+.hero__number { font-size: clamp(48px, 7vw, 76px); color: var(--indigo); font-weight: 500; line-height: 1; }
 .hero__delta { margin: 10px 0 0; font-size: 14px; color: var(--sage); }
 .hero__delta.is-negative { color: var(--clay); }
 .hero__chart { padding-bottom: 4px; }
@@ -84,12 +93,12 @@ h1, h2, .hero__number {
   border: 1px solid var(--line);
 }
 .stat-card {
-  background: var(--ink);
+  background: var(--parchment);
   padding: 22px 20px;
 }
-.stat-card__label { margin: 0 0 8px; font-size: 12.5px; color: rgba(246,242,233,0.55); }
-.stat-card__value { margin: 0; font-size: 26px; font-family: "Fraunces", serif; }
-.stat-card__delta, .stat-card__sub { margin: 6px 0 12px; font-size: 12.5px; color: rgba(246,242,233,0.5); }
+.stat-card__label { margin: 0 0 8px; font-size: 12.5px; color: var(--muted); }
+.stat-card__value { margin: 0; font-size: 26px; font-family: "Fraunces", serif; color: var(--ink); }
+.stat-card__delta, .stat-card__sub { margin: 6px 0 12px; font-size: 12.5px; color: var(--muted); }
 .stat-card__delta.is-negative { color: var(--clay); }
 .stat-card__delta.is-positive { color: var(--sage); }
 
@@ -108,19 +117,20 @@ h1, h2, .hero__number {
   padding-bottom: 10px;
   margin-bottom: 4px;
 }
-.ledger__head h2 { font-size: 19px; font-weight: 500; }
+.ledger__head h2 { font-size: 19px; font-weight: 500; color: var(--ink); }
 .ledger__badge {
   font-size: 11px;
-  color: var(--gold);
-  border: 1px solid rgba(201,162,39,0.4);
+  color: var(--indigo-deep);
+  border: 1px solid rgba(108,99,255,0.35);
+  background: var(--lavender);
   padding: 2px 8px;
   border-radius: 2px;
 }
-.ledger__badge--sage { color: var(--sage); border-color: rgba(124,154,130,0.4); }
+.ledger__badge--sage { color: var(--sage); border-color: rgba(34,160,107,0.35); background: rgba(34,160,107,0.08); }
 .ledger__table { width: 100%; border-collapse: collapse; }
 .ledger__table td { padding: 10px 0; font-size: 14px; border-bottom: 1px solid var(--line); }
-.ledger__table td:first-child { color: rgba(246,242,233,0.65); }
-.ledger__table td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+.ledger__table td:first-child { color: var(--muted); }
+.ledger__table td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--ink); }
 .ledger__table tr:last-child td { border-bottom: none; }
 
 /* Evolution */
@@ -132,12 +142,12 @@ h1, h2, .hero__number {
   gap: 12px;
   margin-bottom: 18px;
 }
-.evolution__head h2 { font-size: 20px; font-weight: 500; }
+.evolution__head h2 { font-size: 20px; font-weight: 500; color: var(--ink); }
 .evolution__toggle { display: flex; gap: 6px; flex-wrap: wrap; }
 .evolution__toggle button {
-  background: transparent;
-  border: 1px solid rgba(246,242,233,0.25);
-  color: rgba(246,242,233,0.75);
+  background: var(--parchment);
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
   font-family: "Inter", sans-serif;
   font-size: 12.5px;
   padding: 6px 12px;
@@ -145,8 +155,9 @@ h1, h2, .hero__number {
   cursor: pointer;
 }
 .evolution__toggle button.is-active {
-  border-color: var(--gold);
-  color: var(--gold);
+  border-color: var(--indigo);
+  color: var(--indigo-deep);
+  background: var(--lavender);
 }
 
 .footer {
@@ -154,7 +165,7 @@ h1, h2, .hero__number {
   padding-top: 20px;
   border-top: 1px solid var(--line);
   font-size: 12px;
-  color: rgba(246,242,233,0.45);
+  color: var(--muted);
 }
 .footer p { margin: 4px 0; }
 

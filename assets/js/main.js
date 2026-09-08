@@ -33,6 +33,11 @@ function setPill(el, value, { digits = 1, suffix = " vs prev." } = {}) {
   el.className = "pill " + (value >= 0 ? "" : "is-negative");
 }
 
+function setUnavailablePill(el, label = "N/A · no 2025 data") {
+  el.textContent = label;
+  el.className = "pill is-neutral";
+}
+
 async function loadData() {
   const res = await fetch("data/data.json", { cache: "no-store" });
   if (!res.ok) throw new Error("Could not load data/data.json");
@@ -120,21 +125,33 @@ function sparkline(canvasId, series, color) {
   });
 }
 
-function renderHero(data, idx) {
+function renderHero(data, idx, compareMode) {
   const curr = data.gross_sales[idx];
-  const prev = idx > 0 ? data.gross_sales[idx - 1] : null;
-  document.getElementById("hero-gross-sales").textContent = fmtUSD(curr);
-  setPill(document.getElementById("hero-delta"), pctChange(curr, prev));
+
+  if (compareMode === "yoy") {
+    const prior = data.gross_sales_2025.values[idx]; // same month index, Jan-26..Aug-26 aligns to Jan-25..Aug-25
+    document.getElementById("hero-gross-sales").textContent = fmtUSD(curr);
+    setPill(document.getElementById("hero-delta"), pctChange(curr, prior), { suffix: " YoY" });
+  } else {
+    const prev = idx > 0 ? data.gross_sales[idx - 1] : null;
+    document.getElementById("hero-gross-sales").textContent = fmtUSD(curr);
+    setPill(document.getElementById("hero-delta"), pctChange(curr, prev));
+  }
+
   document.getElementById("last-updated").textContent = data.meta.last_updated;
   document.getElementById("footer-note").textContent = data.meta.note;
   lineChart("grossSalesChart", data.months.slice(0, idx + 1), data.gross_sales.slice(0, idx + 1), CHART_COLORS.indigo, true);
 }
 
-function renderKpiRow(data, idx) {
+function renderKpiRow(data, idx, compareMode) {
   const prof = data.active_profiles[idx];
   const profPrev = idx > 0 ? data.active_profiles[idx - 1] : null;
   document.getElementById("active-profiles-value").textContent = fmtInt(prof);
-  setPill(document.getElementById("active-profiles-delta"), pctChange(prof, profPrev));
+  if (compareMode === "yoy") {
+    setUnavailablePill(document.getElementById("active-profiles-delta"));
+  } else {
+    setPill(document.getElementById("active-profiles-delta"), pctChange(prof, profPrev));
+  }
   sparkline("profilesSparkline", data.active_profiles.slice(0, idx + 1), CHART_COLORS.sage);
 
   const recipients = data.campaigns.recipients[idx];
@@ -181,8 +198,8 @@ function renderEvolution(data, metricPath, rangeMode, idx) {
 
 function renderAll(data, state) {
   const idx = Number(state.monthIdx);
-  renderHero(data, idx);
-  renderKpiRow(data, idx);
+  renderHero(data, idx, state.compare);
+  renderKpiRow(data, idx, state.compare);
   renderLedger("campaigns-table", data.campaigns, idx);
   renderLedger("flows-table", data.flows, idx);
   const activeMetricBtn = document.querySelector("#metric-toggle button.is-active");
@@ -193,7 +210,7 @@ async function init() {
   try {
     initTheme();
     const data = await loadData();
-    const state = { monthIdx: data.months.length - 1, range: "month" };
+    const state = { monthIdx: data.months.length - 1, range: "month", compare: "mom" };
 
     const monthSelect = populateMonthSelect(data);
     monthSelect.addEventListener("change", (e) => {
@@ -201,9 +218,13 @@ async function init() {
       renderAll(data, state);
     });
 
+    document.getElementById("compare-select").addEventListener("change", (e) => {
+      state.compare = e.target.value;
+      renderAll(data, state);
+    });
+
     document.querySelectorAll("#period-toggle button").forEach((btn) => {
       btn.addEventListener("click", () => {
-        if (btn.dataset.range === "week") return; // weekly data not available yet
         document.querySelectorAll("#period-toggle button").forEach((b) => b.classList.remove("is-active"));
         btn.classList.add("is-active");
         state.range = btn.dataset.range;

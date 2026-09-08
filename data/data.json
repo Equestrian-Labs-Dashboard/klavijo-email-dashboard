@@ -7,6 +7,11 @@
   },
   "months": ["ene-26", "feb-26", "mar-26", "abr-26", "may-26", "jun-26", "jul-26", "ago-26"],
   "gross_sales": [13311, 5954, 7011, 5312, 12023, 6918, 10002, 4101],
+  "gross_sales_2025": {
+    "note": "Único bloque con histórico 2025 completo en la hoja CORRO (fila 43). El resto de las métricas de Email Marketing (Active Profiles, Campaigns, Flows) están vacías en 2025, por eso el YoY solo se puede calcular para Gross Sales por ahora.",
+    "months": ["ene-25", "feb-25", "mar-25", "abr-25", "may-25", "jun-25", "jul-25", "ago-25", "sep-25", "oct-25", "nov-25", "dic-25"],
+    "values": [7050, 17000, 16300, 11300, 27600, 20300, 20500, 12000, 11100, 13600, 19900, 11554]
+  },
   "active_profiles": [50118, 46134, 45972, 46134, 46280, 46210, 46000, 45614],
   "active_base_growth_pct": [null, -7.95, -0.35, 0.35, 0.32, -0.15, -0.45, -0.84],
   "campaigns": {

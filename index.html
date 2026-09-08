@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Klaviyo · Email Marketing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="topbar__mark">CC</span>
+      <div>
+        <p class="topbar__title">Corro Cavali</p>
+        <p class="topbar__subtitle">Email Marketing · Klaviyo</p>
+      </div>
+    </div>
+    <div class="topbar__meta">
+      <span id="last-updated">actualizado —</span>
+      <span class="tag" id="source-tag">AC</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- HERO: Gross Sales -->
+    <section class="hero">
+      <div class="hero__figure">
+        <p class="hero__label">Gross Sales Klaviyo · último mes</p>
+        <p class="hero__number" id="hero-gross-sales">—</p>
+        <p class="hero__delta" id="hero-delta">—</p>
+      </div>
+      <div class="hero__chart">
+        <canvas id="grossSalesChart" height="140"></canvas>
+      </div>
+    </section>
+
+    <!-- INDICATORS: Active Profiles + quick cards -->
+    <section class="ledger-row">
+      <article class="stat-card">
+        <p class="stat-card__label">Active Profiles</p>
+        <p class="stat-card__value" id="active-profiles-value">—</p>
+        <p class="stat-card__delta" id="active-profiles-delta">—</p>
+        <canvas id="profilesSparkline" height="48"></canvas>
+      </article>
+
+      <article class="stat-card">
+        <p class="stat-card__label">Campañas enviadas (mes)</p>
+        <p class="stat-card__value" id="campaigns-count">—</p>
+        <p class="stat-card__sub" id="campaigns-period">—</p>
+      </article>
+
+      <article class="stat-card">
+        <p class="stat-card__label">Revenue Campañas + Flows</p>
+        <p class="stat-card__value" id="total-revenue-value">—</p>
+        <p class="stat-card__sub" id="revenue-share-sub">—</p>
+      </article>
+    </section>
+
+    <!-- LEDGERS: Campaigns vs Flows -->
+    <section class="ledgers">
+      <article class="ledger" data-kind="campaigns">
+        <header class="ledger__head">
+          <h2>Campaigns</h2>
+          <span class="ledger__badge">último mes</span>
+        </header>
+        <table class="ledger__table" id="campaigns-table">
+          <tbody></tbody>
+        </table>
+      </article>
+
+      <article class="ledger" data-kind="flows">
+        <header class="ledger__head">
+          <h2>Flows</h2>
+          <span class="ledger__badge ledger__badge--sage">último mes</span>
+        </header>
+        <table class="ledger__table" id="flows-table">
+          <tbody></tbody>
+        </table>
+      </article>
+    </section>
+
+    <!-- MONTHLY EVOLUTION -->
+    <section class="evolution">
+      <header class="evolution__head">
+        <h2>Evolución mensual</h2>
+        <div class="evolution__toggle" id="metric-toggle">
+          <button data-metric="gross_sales" class="is-active">Gross Sales</button>
+          <button data-metric="active_profiles">Active Profiles</button>
+          <button data-metric="campaigns.revenue">Revenue Campaigns</button>
+          <button data-metric="flows.revenue">Revenue Flows</button>
+        </div>
+      </header>
+      <canvas id="evolutionChart" height="110"></canvas>
+    </section>
+
+    <footer class="footer">
+      <p>Fuente: hoja CORRO — sección Email Marketing (Klaviyo). Layout basado en Quoro / CORRO.</p>
+      <p id="footer-note">Datos semilla — pendiente de conexión en vivo.</p>
+    </footer>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>

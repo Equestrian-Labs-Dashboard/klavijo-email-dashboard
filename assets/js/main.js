@@ -61,10 +61,10 @@ function initTheme() {
 }
 
 // ---- Month filter ----
-function populateMonthSelect(data) {
+function populateMonthSelect(data, defaultIdx) {
   const select = document.getElementById("month-select");
   select.innerHTML = data.months.map((m, i) => `<option value="${i}">${m}</option>`).join("");
-  select.value = data.months.length - 1; // default to latest month
+  select.value = defaultIdx;
   return select;
 }
 
@@ -133,7 +133,8 @@ function renderHero(data, idx, compareMode) {
     document.getElementById("hero-gross-sales").textContent = fmtUSD(curr);
     setPill(document.getElementById("hero-delta"), pctChange(curr, prior), { suffix: " YoY" });
   } else {
-    const prev = idx > 0 ? data.gross_sales[idx - 1] : null;
+    // MoM comparison
+    const prev = idx > 0 ? data.gross_sales[idx - 1] : data.gross_sales_2025.values[11];
     document.getElementById("hero-gross-sales").textContent = fmtUSD(curr);
     setPill(document.getElementById("hero-delta"), pctChange(curr, prev));
   }
@@ -210,9 +211,19 @@ async function init() {
   try {
     initTheme();
     const data = await loadData();
-    const state = { monthIdx: data.months.length - 1, range: "month", compare: "mom" };
+    
+    // Find last index with actual data to use as default closed month
+    let defaultIdx = data.months.length - 1;
+    for (let i = data.months.length - 1; i >= 0; i--) {
+      if (data.gross_sales[i] !== null) {
+        defaultIdx = i;
+        break;
+      }
+    }
+    
+    const state = { monthIdx: defaultIdx, range: "month", compare: "mom" };
 
-    const monthSelect = populateMonthSelect(data);
+    const monthSelect = populateMonthSelect(data, state.monthIdx);
     monthSelect.addEventListener("change", (e) => {
       state.monthIdx = e.target.value;
       renderAll(data, state);

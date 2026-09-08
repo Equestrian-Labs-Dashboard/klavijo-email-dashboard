@@ -1,0 +1,41 @@
+name: Update Klaviyo data
+
+on:
+  schedule:
+    - cron: "0 9 * * *"   # todos los días 09:00 UTC — ajustar a gusto
+  workflow_dispatch: {}     # botón "Run workflow" manual
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Fetch data from Google Sheets
+        env:
+          # Estas dos variables se leen desde GitHub Secrets. Nunca se
+          # imprimen ni se guardan en el repo — ver README.md.
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          SHEET_TAB: ${{ vars.SHEET_TAB || 'CORRO' }}
+        run: python scripts/fetch_sheet_data.py
+
+      - name: Commit updated data.json
+        run: |
+          git config user.name "clavijo-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/data.json
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "chore: actualizar data.json [automático]"
+          git push

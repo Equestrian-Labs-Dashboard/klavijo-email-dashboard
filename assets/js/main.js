@@ -136,7 +136,7 @@ function sumYTD(arr, maxIdx) {
 function renderHero(data, idx, compareMode) {
   // YTD Logic
   const currYTD = sumYTD(data.gross_sales, idx);
-  const priorYTD = sumYTD(data.gross_sales_2025.values, idx);
+  const priorYTD = data.gross_sales_2025 ? sumYTD(data.gross_sales_2025.values, idx) : null;
   
   document.getElementById("hero-gross-sales-ytd").textContent = fmtUSD(currYTD);
   setPill(document.getElementById("hero-delta-ytd"), pctChange(currYTD, priorYTD), { suffix: " YoY" });
@@ -146,11 +146,11 @@ function renderHero(data, idx, compareMode) {
   document.getElementById("hero-gross-sales-month").textContent = fmtUSD(currMonth);
 
   if (compareMode === "yoy") {
-    const priorMonth = data.gross_sales_2025.values[idx];
+    const priorMonth = data.gross_sales_2025 ? data.gross_sales_2025.values[idx] : null;
     setPill(document.getElementById("hero-delta-month"), pctChange(currMonth, priorMonth), { suffix: " YoY" });
   } else {
     // MoM comparison
-    const prevMonth = idx > 0 ? data.gross_sales[idx - 1] : data.gross_sales_2025.values[11];
+    const prevMonth = idx > 0 ? data.gross_sales[idx - 1] : (data.gross_sales_2025 ? data.gross_sales_2025.values[11] : null);
     setPill(document.getElementById("hero-delta-month"), pctChange(currMonth, prevMonth));
   }
 

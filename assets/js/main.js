@@ -125,23 +125,37 @@ function sparkline(canvasId, series, color) {
   });
 }
 
+function sumYTD(arr, maxIdx) {
+  let sum = 0;
+  for (let i = 0; i <= maxIdx; i++) {
+    if (arr[i] !== null && arr[i] !== undefined) sum += arr[i];
+  }
+  return sum;
+}
+
 function renderHero(data, idx, compareMode) {
-  const curr = data.gross_sales[idx];
+  // YTD Logic
+  const currYTD = sumYTD(data.gross_sales, idx);
+  const priorYTD = sumYTD(data.gross_sales_2025.values, idx);
+  
+  document.getElementById("hero-gross-sales-ytd").textContent = fmtUSD(currYTD);
+  setPill(document.getElementById("hero-delta-ytd"), pctChange(currYTD, priorYTD), { suffix: " YoY" });
+
+  // Selected Month Logic
+  const currMonth = data.gross_sales[idx];
+  document.getElementById("hero-gross-sales-month").textContent = fmtUSD(currMonth);
 
   if (compareMode === "yoy") {
-    const prior = data.gross_sales_2025.values[idx]; // same month index, Jan-26..Aug-26 aligns to Jan-25..Aug-25
-    document.getElementById("hero-gross-sales").textContent = fmtUSD(curr);
-    setPill(document.getElementById("hero-delta"), pctChange(curr, prior), { suffix: " YoY" });
+    const priorMonth = data.gross_sales_2025.values[idx];
+    setPill(document.getElementById("hero-delta-month"), pctChange(currMonth, priorMonth), { suffix: " YoY" });
   } else {
     // MoM comparison
-    const prev = idx > 0 ? data.gross_sales[idx - 1] : data.gross_sales_2025.values[11];
-    document.getElementById("hero-gross-sales").textContent = fmtUSD(curr);
-    setPill(document.getElementById("hero-delta"), pctChange(curr, prev));
+    const prevMonth = idx > 0 ? data.gross_sales[idx - 1] : data.gross_sales_2025.values[11];
+    setPill(document.getElementById("hero-delta-month"), pctChange(currMonth, prevMonth));
   }
 
   document.getElementById("last-updated").textContent = data.meta.last_updated;
   document.getElementById("footer-note").textContent = data.meta.note;
-  lineChart("grossSalesChart", data.months.slice(0, idx + 1), data.gross_sales.slice(0, idx + 1), CHART_COLORS.indigo, true);
 }
 
 function renderKpiRow(data, idx, compareMode) {
@@ -153,17 +167,16 @@ function renderKpiRow(data, idx, compareMode) {
   } else {
     setPill(document.getElementById("active-profiles-delta"), pctChange(prof, profPrev));
   }
-  sparkline("profilesSparkline", data.active_profiles.slice(0, idx + 1), CHART_COLORS.sage);
 
-  const recipients = data.campaigns.recipients[idx];
-  document.getElementById("campaigns-count").textContent = recipients ? fmtInt(recipients) : "—";
-  document.getElementById("campaigns-period").textContent = data.months[idx];
+  const campYTD = sumYTD(data.campaigns.revenue, idx);
+  const flowYTD = sumYTD(data.flows.revenue, idx);
+  const totalYTD = campYTD + flowYTD;
 
-  const totalRevenue = (data.campaigns.revenue[idx] || 0) + (data.flows.revenue[idx] || 0);
-  document.getElementById("total-revenue-value").textContent = fmtUSD(totalRevenue);
-  const campShare = data.campaigns.share_of_total_revenue_pct[idx];
-  const flowShare = data.flows.share_of_total_revenue_pct[idx];
-  document.getElementById("revenue-share-sub").textContent = `Campaigns ${fmtPct(campShare, 0)} · Flows ${fmtPct(flowShare, 0)}`;
+  document.getElementById("kpi-campaigns-revenue").textContent = fmtUSD(campYTD);
+  document.getElementById("kpi-campaigns-share").textContent = totalYTD > 0 ? `${fmtPct((campYTD / totalYTD) * 100, 1)} of total revenue` : "—";
+
+  document.getElementById("kpi-flows-revenue").textContent = fmtUSD(flowYTD);
+  document.getElementById("kpi-flows-share").textContent = totalYTD > 0 ? `${fmtPct((flowYTD / totalYTD) * 100, 1)} of total revenue` : "—";
 }
 
 function renderLedger(tableId, block, idx) {

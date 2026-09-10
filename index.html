@@ -54,51 +54,37 @@
       </div>
     </section>
 
-    <!-- HERO: Gross Sales YTD & Interactive Chart -->
+    <!-- HERO: Gross Sales -->
     <section class="hero">
-      <div class="hero__figure" style="display: flex; flex-direction: column; justify-content: center;">
-        <div style="margin-bottom: 2rem;">
-          <p class="hero__label" style="margin-bottom: 0.25rem;">Gross Sales YTD</p>
-          <p class="hero__number" id="hero-gross-sales-ytd">—</p>
-          <span class="pill" id="hero-delta-ytd">—</span>
-        </div>
-        <div>
-          <p class="hero__label" style="margin-bottom: 0.25rem;">Gross Sales · Selected Month</p>
-          <p class="hero__number" style="font-size: 2rem; margin-bottom: 0.25rem;" id="hero-gross-sales-month">—</p>
-          <span class="pill" id="hero-delta-month">—</span>
-        </div>
+      <div class="hero__figure">
+        <p class="hero__label">Gross Sales Klaviyo · selected month</p>
+        <p class="hero__number" id="hero-gross-sales">—</p>
+        <span class="pill" id="hero-delta">—</span>
       </div>
       <div class="hero__chart">
-        <header class="evolution__head" style="margin-bottom: 12px; display: flex; justify-content: flex-end; align-items: center;">
-          <div class="evolution__toggle" id="metric-toggle">
-            <button data-metric="gross_sales" class="is-active">Gross Sales</button>
-            <button data-metric="active_profiles">Active Profiles</button>
-            <button data-metric="campaigns.revenue">Revenue Campaigns</button>
-            <button data-metric="flows.revenue">Revenue Flows</button>
-          </div>
-        </header>
-        <canvas id="evolutionChart" height="130"></canvas>
+        <canvas id="grossSalesChart" height="140"></canvas>
       </div>
     </section>
 
     <!-- KPI ROW -->
     <section class="kpi-grid">
-      <article class="kpi-card kpi-card--accent" style="display: flex; flex-direction: column; justify-content: center;">
+      <article class="kpi-card kpi-card--accent">
         <p class="kpi-card__label">ACTIVE PROFILES</p>
         <p class="kpi-card__value" id="active-profiles-value">—</p>
-        <span class="pill" id="active-profiles-delta" style="align-self: flex-start; margin-top: 0.25rem;">—</span>
+        <span class="pill" id="active-profiles-delta">—</span>
+        <canvas id="profilesSparkline" height="46"></canvas>
       </article>
 
-      <article class="kpi-card" style="display: flex; flex-direction: column; justify-content: center;">
-        <p class="kpi-card__label">REVENUE CAMPAIGNS (YTD)</p>
-        <p class="kpi-card__value" id="kpi-campaigns-revenue">—</p>
-        <p class="kpi-card__sub" id="kpi-campaigns-share">—</p>
+      <article class="kpi-card">
+        <p class="kpi-card__label">RECIPIENTS (LAST CAMPAIGN)</p>
+        <p class="kpi-card__value" id="campaigns-count">—</p>
+        <p class="kpi-card__sub" id="campaigns-period">—</p>
       </article>
 
-      <article class="kpi-card" style="display: flex; flex-direction: column; justify-content: center;">
-        <p class="kpi-card__label">REVENUE FLOWS (YTD)</p>
-        <p class="kpi-card__value" id="kpi-flows-revenue">—</p>
-        <p class="kpi-card__sub" id="kpi-flows-share">—</p>
+      <article class="kpi-card">
+        <p class="kpi-card__label">REVENUE — CAMPAIGNS + FLOWS</p>
+        <p class="kpi-card__value" id="total-revenue-value">—</p>
+        <p class="kpi-card__sub" id="revenue-share-sub">—</p>
       </article>
     </section>
 
@@ -123,6 +109,20 @@
           <tbody></tbody>
         </table>
       </article>
+    </section>
+
+    <!-- MONTHLY EVOLUTION -->
+    <section class="evolution">
+      <header class="evolution__head">
+        <h2>Monthly evolution</h2>
+        <div class="evolution__toggle" id="metric-toggle">
+          <button data-metric="gross_sales" class="is-active">Gross Sales</button>
+          <button data-metric="active_profiles">Active Profiles</button>
+          <button data-metric="campaigns.revenue">Revenue Campaigns</button>
+          <button data-metric="flows.revenue">Revenue Flows</button>
+        </div>
+      </header>
+      <canvas id="evolutionChart" height="110"></canvas>
     </section>
 
     <footer class="footer">

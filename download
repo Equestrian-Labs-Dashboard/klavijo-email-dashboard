@@ -1,0 +1,9 @@
+# Nunca commitear credenciales
+*.json.key
+service-account*.json
+credentials*.json
+.env
+
+# OS / editor
+.DS_Store
+.vscode/

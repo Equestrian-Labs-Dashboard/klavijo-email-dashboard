@@ -1,4 +1,4 @@
-const CHART_COLORS = {
+﻿const CHART_COLORS = {
   indigo: "#4F5BD5",
   sage: "#1E9E6B",
   clay: "#E24C3D",
@@ -10,7 +10,7 @@ function themeColor(varName) {
 
 const fmtUSD = (n) => n === null || n === undefined ? "—" : "$" + Math.round(n).toLocaleString("en-US");
 const fmtInt = (n) => n === null || n === undefined ? "—" : Math.round(n).toLocaleString("en-US");
-const fmtPct = (n, digits = 1) => n === null || n === undefined ? "—" : `${n.toFixed(digits)}%`;
+const fmtPct = (n, digits = 1) => n === null || n === undefined ? "—" : n.toFixed(digits) + "%";
 const fmtUSD2 = (n) => n === null || n === undefined ? "—" : "$" + n.toFixed(2);
 
 function pctChange(curr, prev) {
@@ -29,7 +29,7 @@ function setPill(el, value, { digits = 1, suffix = " vs prev." } = {}) {
     return;
   }
   const arrow = value >= 0 ? "▲" : "▼";
-  el.textContent = `${arrow} ${Math.abs(value).toFixed(digits)}%${suffix}`;
+  el.textContent = arrow + " " + Math.abs(value).toFixed(digits) + "%" + suffix;
   el.className = "pill " + (value >= 0 ? "" : "is-negative");
 }
 
@@ -61,15 +61,14 @@ function initTheme() {
 }
 
 // ---- Month filter ----
-function populateMonthSelect(data, defaultIdx) {
+function populateMonthSelect(months, defaultIdx) {
   const select = document.getElementById("month-select");
-  select.innerHTML = data.months.map((m, i) => `<option value="${i}">${m}</option>`).join("");
+  select.innerHTML = months.map((m, i) => "<option value=\"" + i + "\">" + m + "</option>").join("");
   select.value = defaultIdx;
   return select;
 }
 
 function quarterIndices(monthIdx) {
-  // group months into quarters of 3, aligned to the start of the dataset
   const qStart = Math.floor(monthIdx / 3) * 3;
   return [qStart, Math.min(qStart + 2, monthIdx)];
 }
@@ -108,23 +107,6 @@ function lineChart(canvasId, labels, series, color, fill = false) {
   });
 }
 
-function sparkline(canvasId, series, color) {
-  destroyChart(canvasId);
-  const ctx = document.getElementById(canvasId);
-  charts[canvasId] = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: series.map((_, i) => i),
-      datasets: [{ data: series, borderColor: color, borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false }],
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      scales: { x: { display: false }, y: { display: false } },
-    },
-  });
-}
-
 function sumYTD(arr, maxIdx) {
   let sum = 0;
   for (let i = 0; i <= maxIdx; i++) {
@@ -133,34 +115,31 @@ function sumYTD(arr, maxIdx) {
   return sum;
 }
 
-function renderHero(data, idx, compareMode) {
-  // YTD Logic
-  const currYTD = sumYTD(data.gross_sales, idx);
-  const priorYTD = data.gross_sales_2025 ? sumYTD(data.gross_sales_2025.values, idx) : null;
+function renderHero(buData, meta, idx, compareMode) {
+  const currYTD = sumYTD(buData.gross_sales, idx);
+  const priorYTD = buData.gross_sales_2025 ? sumYTD(buData.gross_sales_2025.values, idx) : null;
   
   document.getElementById("hero-gross-sales-ytd").textContent = fmtUSD(currYTD);
   setPill(document.getElementById("hero-delta-ytd"), pctChange(currYTD, priorYTD), { suffix: " YoY" });
 
-  // Selected Month Logic
-  const currMonth = data.gross_sales[idx];
+  const currMonth = buData.gross_sales[idx];
   document.getElementById("hero-gross-sales-month").textContent = fmtUSD(currMonth);
 
   if (compareMode === "yoy") {
-    const priorMonth = data.gross_sales_2025 ? data.gross_sales_2025.values[idx] : null;
+    const priorMonth = buData.gross_sales_2025 ? buData.gross_sales_2025.values[idx] : null;
     setPill(document.getElementById("hero-delta-month"), pctChange(currMonth, priorMonth), { suffix: " YoY" });
   } else {
-    // MoM comparison
-    const prevMonth = idx > 0 ? data.gross_sales[idx - 1] : (data.gross_sales_2025 ? data.gross_sales_2025.values[11] : null);
+    const prevMonth = idx > 0 ? buData.gross_sales[idx - 1] : (buData.gross_sales_2025 ? buData.gross_sales_2025.values[11] : null);
     setPill(document.getElementById("hero-delta-month"), pctChange(currMonth, prevMonth));
   }
 
-  document.getElementById("last-updated").textContent = data.meta.last_updated;
-  document.getElementById("footer-note").textContent = data.meta.note;
+  document.getElementById("last-updated").textContent = meta.last_updated;
+  document.getElementById("footer-note").textContent = meta.note;
 }
 
-function renderKpiRow(data, idx, compareMode) {
-  const prof = data.active_profiles[idx];
-  const profPrev = idx > 0 ? data.active_profiles[idx - 1] : null;
+function renderKpiRow(buData, idx, compareMode) {
+  const prof = buData.active_profiles[idx];
+  const profPrev = idx > 0 ? buData.active_profiles[idx - 1] : null;
   document.getElementById("active-profiles-value").textContent = fmtInt(prof);
   if (compareMode === "yoy") {
     setUnavailablePill(document.getElementById("active-profiles-delta"));
@@ -168,56 +147,77 @@ function renderKpiRow(data, idx, compareMode) {
     setPill(document.getElementById("active-profiles-delta"), pctChange(prof, profPrev));
   }
 
-  const campYTD = sumYTD(data.campaigns.revenue, idx);
-  const flowYTD = sumYTD(data.flows.revenue, idx);
+  const campYTD = sumYTD(buData.campaigns.revenue, idx);
+  const flowYTD = sumYTD(buData.flows.revenue, idx);
   const totalYTD = campYTD + flowYTD;
 
   document.getElementById("kpi-campaigns-revenue").textContent = fmtUSD(campYTD);
-  document.getElementById("kpi-campaigns-share").textContent = totalYTD > 0 ? `${fmtPct((campYTD / totalYTD) * 100, 1)} of total revenue` : "—";
+  document.getElementById("kpi-campaigns-share").textContent = totalYTD > 0 ? fmtPct((campYTD / totalYTD) * 100, 1) + " of total revenue" : "—";
 
   document.getElementById("kpi-flows-revenue").textContent = fmtUSD(flowYTD);
-  document.getElementById("kpi-flows-share").textContent = totalYTD > 0 ? `${fmtPct((flowYTD / totalYTD) * 100, 1)} of total revenue` : "—";
+  document.getElementById("kpi-flows-share").textContent = totalYTD > 0 ? fmtPct((flowYTD / totalYTD) * 100, 1) + " of total revenue" : "—";
 }
 
-function renderLedger(tableId, block, idx) {
+function getVal(arr, idx) {
+  if (idx < 0 || idx >= arr.length) return null;
+  return arr[idx];
+}
+
+function renderLedger(tableId, block, months, idx) {
+  const idx0 = idx;
+  const idx1 = idx - 1;
+  const idx2 = idx - 2;
+
+  const thHtml = "<th></th><th style=\"text-align:right; font-weight:normal; color:var(--muted); font-size:12px; padding-bottom:4px;\">" + (idx2 >= 0 ? months[idx2] : '') + "</th><th style=\"text-align:right; font-weight:normal; color:var(--muted); font-size:12px; padding-bottom:4px;\">" + (idx1 >= 0 ? months[idx1] : '') + "</th><th style=\"text-align:right; font-weight:600; color:var(--ink); font-size:12px; padding-bottom:4px;\">" + months[idx0] + "</th>";
+  document.getElementById(tableId + "-thead").innerHTML = thHtml;
+
   const rows = [
-    ["Open Rate", fmtPct(block.open_rate_pct[idx], 1)],
-    ["CTR", fmtPct(block.ctr_pct[idx], 2)],
-    ["Conversion Rate", fmtPct(block.conversion_rate_pct[idx], 2)],
-    ["Revenue", fmtUSD(block.revenue[idx])],
-    ["AOV", fmtUSD(block.aov[idx])],
-    ["USD per customer", fmtUSD2(block.avg_usd_per_customer[idx])],
-    ["Recipients", fmtInt(block.recipients[idx])],
-    ["Unique Opens", fmtInt(block.unique_opens[idx])],
-    ["Share of total revenue", fmtPct(block.share_of_total_revenue_pct[idx], 0)],
+    { label: "Open Rate", fmt: (v) => fmtPct(v, 1), key: "open_rate_pct" },
+    { label: "CTR", fmt: (v) => fmtPct(v, 2), key: "ctr_pct" },
+    { label: "Conversion Rate", fmt: (v) => fmtPct(v, 2), key: "conversion_rate_pct" },
+    { label: "Revenue", fmt: (v) => fmtUSD(v), key: "revenue" },
+    { label: "AOV", fmt: (v) => fmtUSD(v), key: "aov" },
+    { label: "USD per customer", fmt: (v) => fmtUSD2(v), key: "avg_usd_per_customer" },
+    { label: "Recipients", fmt: (v) => fmtInt(v), key: "recipients" },
+    { label: "Unique Opens", fmt: (v) => fmtInt(v), key: "unique_opens" },
+    { label: "Share of total revenue", fmt: (v) => fmtPct(v, 0), key: "share_of_total_revenue_pct" },
   ];
-  const tbody = document.querySelector(`#${tableId} tbody`);
-  tbody.innerHTML = rows.map(([label, value]) => `<tr><td>${label}</td><td>${value}</td></tr>`).join("");
+
+  const tbody = document.querySelector("#" + tableId + " tbody");
+  tbody.innerHTML = rows.map(r => {
+    const v2 = idx2 >= 0 ? r.fmt(getVal(block[r.key], idx2)) : '';
+    const v1 = idx1 >= 0 ? r.fmt(getVal(block[r.key], idx1)) : '';
+    const v0 = r.fmt(getVal(block[r.key], idx0));
+    return "<tr><td>" + r.label + "</td><td style=\"text-align:right; font-variant-numeric: tabular-nums; color:var(--muted);\">" + v2 + "</td><td style=\"text-align:right; font-variant-numeric: tabular-nums; color:var(--muted);\">" + v1 + "</td><td>" + v0 + "</td></tr>";
+  }).join("");
 }
 
-function renderEvolution(data, metricPath, rangeMode, idx) {
-  let months = data.months;
-  let series = getByPath(data, metricPath);
+function renderEvolution(buData, months, metricPath, rangeMode, idx) {
+  let m = months;
+  let series = getByPath(buData, metricPath);
 
   if (rangeMode === "quarter") {
     const [start, end] = quarterIndices(idx);
-    months = months.slice(start, end + 1);
+    m = m.slice(start, end + 1);
     series = series.slice(start, end + 1);
   } else {
-    months = months.slice(0, idx + 1);
+    m = m.slice(0, idx + 1);
     series = series.slice(0, idx + 1);
   }
-  lineChart("evolutionChart", months, series, CHART_COLORS.indigo, true);
+  lineChart("evolutionChart", m, series, CHART_COLORS.indigo, true);
 }
 
 function renderAll(data, state) {
+  const buData = data.bu_data[state.bu];
   const idx = Number(state.monthIdx);
-  renderHero(data, idx, state.compare);
-  renderKpiRow(data, idx, state.compare);
-  renderLedger("campaigns-table", data.campaigns, idx);
-  renderLedger("flows-table", data.flows, idx);
+  
+  renderHero(buData, data.meta, idx, state.compare);
+  renderKpiRow(buData, idx, state.compare);
+  renderLedger("campaigns-table", buData.campaigns, data.months, idx);
+  renderLedger("flows-table", buData.flows, data.months, idx);
+  
   const activeMetricBtn = document.querySelector("#metric-toggle button.is-active");
-  renderEvolution(data, activeMetricBtn.dataset.metric, state.range, idx);
+  renderEvolution(buData, data.months, activeMetricBtn.dataset.metric, state.range, idx);
 }
 
 async function init() {
@@ -225,18 +225,30 @@ async function init() {
     initTheme();
     const data = await loadData();
     
-    // Find last index with actual data to use as default closed month
+    // Determine default BU
+    const buSelect = document.getElementById("bu-select");
+    const bu = buSelect ? buSelect.value : "CORRO";
+    const defaultBuData = data.bu_data[bu];
+    
+    // Find last index with actual data
     let defaultIdx = data.months.length - 1;
     for (let i = data.months.length - 1; i >= 0; i--) {
-      if (data.gross_sales[i] !== null) {
+      if (defaultBuData.gross_sales[i] !== null) {
         defaultIdx = i;
         break;
       }
     }
     
-    const state = { monthIdx: defaultIdx, range: "month", compare: "mom" };
+    const state = { bu, monthIdx: defaultIdx, range: "month", compare: "mom" };
 
-    const monthSelect = populateMonthSelect(data, state.monthIdx);
+    if (buSelect) {
+      buSelect.addEventListener("change", (e) => {
+        state.bu = e.target.value;
+        renderAll(data, state);
+      });
+    }
+
+    const monthSelect = populateMonthSelect(data.months, state.monthIdx);
     monthSelect.addEventListener("change", (e) => {
       state.monthIdx = e.target.value;
       renderAll(data, state);
@@ -268,7 +280,7 @@ async function init() {
 
     renderAll(data, state);
   } catch (err) {
-    document.querySelector(".wrap").innerHTML = `<p style="color:#E24C3D">Error loading data: ${err.message}</p>`;
+    document.querySelector(".wrap").innerHTML = "<p style=\"color:#E24C3D\">Error loading data: " + err.message + "</p>";
     console.error(err);
   }
 }

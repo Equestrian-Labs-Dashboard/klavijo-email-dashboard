@@ -1,4 +1,4 @@
-﻿const CHART_COLORS = {
+const CHART_COLORS = {
   indigo: "#4F5BD5",
   sage: "#1E9E6B",
   clay: "#E24C3D",
@@ -169,7 +169,7 @@ function renderLedger(tableId, block, months, idx) {
   const idx2 = idx - 2;
 
   const thHtml = "<th></th><th style=\"text-align:right; font-weight:normal; color:var(--muted); font-size:12px; padding-bottom:4px;\">" + (idx2 >= 0 ? months[idx2] : '') + "</th><th style=\"text-align:right; font-weight:normal; color:var(--muted); font-size:12px; padding-bottom:4px;\">" + (idx1 >= 0 ? months[idx1] : '') + "</th><th style=\"text-align:right; font-weight:600; color:var(--ink); font-size:12px; padding-bottom:4px;\">" + months[idx0] + "</th>";
-  document.getElementById(tableId + "-thead").innerHTML = thHtml;
+  document.querySelector("#" + tableId + " thead tr").innerHTML = thHtml;
 
   const rows = [
     { label: "Open Rate", fmt: (v) => fmtPct(v, 1), key: "open_rate_pct" },

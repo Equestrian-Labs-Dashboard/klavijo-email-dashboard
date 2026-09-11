@@ -178,7 +178,7 @@ function renderLedger(tableId, block, months, idx) {
     { label: "Revenue", fmt: (v) => fmtUSD(v), key: "revenue" },
     { label: "AOV", fmt: (v) => fmtUSD(v), key: "aov" },
     { label: "USD per customer", fmt: (v) => fmtUSD2(v), key: "avg_usd_per_customer" },
-    { label: "Recipients", fmt: (v) => fmtInt(v), key: "recipients" },
+    { label: "Unique Recipients", fmt: (v) => fmtInt(v), key: "recipients" },
     { label: "Unique Opens", fmt: (v) => fmtInt(v), key: "unique_opens" },
     { label: "Share of total revenue", fmt: (v) => fmtPct(v, 0), key: "share_of_total_revenue_pct" },
   ];

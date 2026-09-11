@@ -66,14 +66,34 @@ TABS = {
 
 MONTH_LABELS = ["ene-26", "feb-26", "mar-26", "abr-26", "may-26", "jun-26", "jul-26", "ago-26", "sep-26", "oct-26", "nov-26", "dic-26"]
 
+import re
+
 def clean_number(raw):
-    if raw in (None, "", "#DIV/0!", "#REF!"):
+    if raw in (None, "", "#DIV/0!", "#REF!", "-"):
         return None
     if isinstance(raw, (int, float)):
         return raw
-    s = str(raw).replace("$", "").replace(",", "").replace("%", "").strip()
+        
+    s = str(raw).strip().replace("$", "").replace(" ", "")
+    if s.endswith("%"):
+        s = s.replace("%", "")
+        
+    multiplier = 1
+    s_lower = s.lower()
+    if s_lower.endswith("k"):
+        multiplier = 1000
+        s = s_lower.replace("k", "")
+    elif s_lower.endswith("m"):
+        multiplier = 1000000
+        s = s_lower.replace("m", "")
+        
+    if re.search(r',\d{1,2}$', s):
+        s = s.replace(".", "").replace(",", ".")
+    else:
+        s = s.replace(",", "")
+        
     try:
-        return float(s)
+        return float(s) * multiplier
     except ValueError:
         return None
 

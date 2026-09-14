@@ -39,8 +39,9 @@ function setUnavailablePill(el, label = "N/A · no 2025 data") {
 }
 
 async function loadData() {
-  const res = await fetch("data/data.json", { cache: "no-store" });
-  if (!res.ok) throw new Error("Could not load data/data.json");
+  const url = window.DATA_URL || "data/data.json";
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("Could not load " + url);
   return res.json();
 }
 

@@ -25,17 +25,20 @@ jobs:
 
       - name: Fetch data from Google Sheets
         env:
-          # Estas dos variables se leen desde GitHub Secrets. Nunca se
-          # imprimen ni se guardan en el repo — ver README.md.
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
-          SHEET_TAB: ${{ vars.SHEET_TAB || 'CORRO' }}
         run: python scripts/fetch_sheet_data.py
 
-      - name: Commit updated data.json
+      - name: Fetch data from Klaviyo API
+        env:
+          KLAVIYO_API_KEY_CORRO: ${{ secrets.KLAVIYO_API_KEY_CORRO }}
+          KLAVIYO_API_KEY_CAVALI: ${{ secrets.KLAVIYO_API_KEY_CAVALI }}
+        run: python scripts/fetch_klaviyo_api.py
+
+      - name: Commit updated data
         run: |
           git config user.name "clavijo-data-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/data.json
-          git diff --cached --quiet && echo "Sin cambios" || git commit -m "chore: actualizar data.json [automático]"
+          git add data/data.json data/klaviyo_api_data.json
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "chore: actualizar datos [automǭtico]"
           git push

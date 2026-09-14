@@ -54,68 +54,69 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", by=None):
         }
     }
     
-    # Try primary dimension, if it fails we will retry with a fallback
+    # Intentamos la dimension principal
     primary_dim = by
     if by == "Campaign Name": primary_dim = "$campaign"
     if by == "Flow Name": primary_dim = "$flow"
-    
     if primary_dim:
         payload["data"]["attributes"]["by"] = [primary_dim]
         
     result_array = [0]*12
     
-    # Klaviyo rate limit for aggregates is ~15 per minute, so we must sleep ~4 seconds
-    time.sleep(4.5)
-    
-    try:
-        res = requests.post(url, json=payload, headers=get_headers(api_key))
-        
-        # Fallback if dimension is invalid
-        if res.status_code == 400 and primary_dim:
-            print(f"  -> Dimension '{primary_dim}' invalida para {metric_id}. Reintentando con '$message'...")
-            payload["data"]["attributes"]["by"] = ["$message"]
-            time.sleep(4.5)
+    for attempt in range(3):
+        time.sleep(3) # Espera base de 3 segs para no saturar Klaviyo
+        try:
             res = requests.post(url, json=payload, headers=get_headers(api_key))
             
-            if res.status_code == 400:
-                 print(f"  -> Dimension '$message' tambien invalida. Reintentando sin agrupar...")
-                 del payload["data"]["attributes"]["by"]
-                 time.sleep(4.5)
-                 res = requests.post(url, json=payload, headers=get_headers(api_key))
-
-        if res.status_code == 200:
-            data = res.json().get("data", {}).get("attributes", {})
-            dates = data.get("dates", [])
-            results_data = data.get("data", [])
-            
-            if not results_data:
+            # Si nos bloquean por exceso de velocidad (429)
+            if res.status_code == 429:
+                print(f"  -> Limite de velocidad (429) alcanzado. Esperando 5 segundos...")
+                time.sleep(5)
+                continue
+                
+            # Si la dimension elegida no es valida en la cuenta (400)
+            elif res.status_code == 400 and primary_dim:
+                print(f"  -> ADVERTENCIA: No se puede agrupar por '{primary_dim}' en metrica {metric_id}. Saltando...")
+                return result_array # Retorna 0s silenciosamente para no detener todo el programa
+                
+            elif res.status_code == 200:
+                data = res.json().get("data", {}).get("attributes", {})
+                dates = data.get("dates", [])
+                results_data = data.get("data", [])
+                
+                if not results_data:
+                    return result_array
+                    
+                target_series = []
+                if "by" in payload["data"]["attributes"]:
+                    sums = [0]*len(dates)
+                    for group in results_data:
+                        dim_val = group.get("dimensions", [])
+                        if dim_val and dim_val[0]:
+                            vals = group.get("measurements", {}).get(measurement, [])
+                            for i, v in enumerate(vals):
+                                sums[i] += v
+                    target_series = sums
+                else:
+                    target_series = results_data[0].get("measurements", {}).get(measurement, [])
+                    
+                for i, d in enumerate(dates):
+                    try:
+                        month_idx = int(d[5:7]) - 1
+                        if 0 <= month_idx < 12 and i < len(target_series):
+                            result_array[month_idx] = target_series[i]
+                    except:
+                        pass
                 return result_array
-                
-            target_series = []
-            if "by" in payload["data"]["attributes"]:
-                sums = [0]*len(dates)
-                for group in results_data:
-                    dim_val = group.get("dimensions", [])
-                    if dim_val and dim_val[0]:
-                        vals = group.get("measurements", {}).get(measurement, [])
-                        for i, v in enumerate(vals):
-                            sums[i] += v
-                target_series = sums
+            
             else:
-                target_series = results_data[0].get("measurements", {}).get(measurement, [])
+                print(f"  -> Error HTTP {res.status_code} al agrupar {metric_id}: {res.text}")
+                break
                 
-            for i, d in enumerate(dates):
-                try:
-                    month_idx = int(d[5:7]) - 1
-                    if 0 <= month_idx < 12 and i < len(target_series):
-                        result_array[month_idx] = target_series[i]
-                except:
-                    pass
-        else:
-            print(f"Error HTTP {res.status_code} al agrupar {metric_id}: {res.text}")
-    except Exception as e:
-        print(f"Exception al agrupar {metric_id}: {e}")
-        
+        except Exception as e:
+            print(f"  -> Error de Conexion ({e}). Reintentando en 5 segs...")
+            time.sleep(5)
+            
     return result_array
 
 def process_bu(api_key, bu_name):

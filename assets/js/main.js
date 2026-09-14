@@ -231,10 +231,20 @@ async function init() {
     const bu = buSelect ? buSelect.value : "CORRO";
     const defaultBuData = data.bu_data[bu];
     
-    // Find last index with actual data
-    let defaultIdx = data.months.length - 1;
-    for (let i = data.months.length - 1; i >= 0; i--) {
-      if (defaultBuData.gross_sales[i] !== null) {
+    // Default to the last closed month
+    const today = new Date();
+    const isCurrentYear = today.getFullYear() === 2026;
+    const currentMonth = today.getMonth(); // 0-11
+    
+    let maxAllowedIdx = 11;
+    if (isCurrentYear) {
+      maxAllowedIdx = currentMonth - 1; // Last closed month
+    }
+    
+    // Find last index with actual data, up to the max allowed
+    let defaultIdx = 0;
+    for (let i = 11; i >= 0; i--) {
+      if (defaultBuData.gross_sales[i] !== null && i <= maxAllowedIdx) {
         defaultIdx = i;
         break;
       }

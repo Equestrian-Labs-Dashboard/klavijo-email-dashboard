@@ -136,8 +136,6 @@ def process_bu(api_key, bu_name):
     
     print("✅ Empezando a descargar los totales...")
     
-    gross_sales = fetch_aggregate(api_key, id_placed, "sum_value", is_placed_order=True)
-    
     camp_rev = fetch_aggregate(api_key, id_placed, "sum_value", "Campaign Name", is_placed_order=True)
     camp_conv = fetch_aggregate(api_key, id_placed, "unique", "Campaign Name", is_placed_order=True)
     camp_recip = fetch_aggregate(api_key, id_received, "unique", "Campaign Name")
@@ -149,6 +147,14 @@ def process_bu(api_key, bu_name):
     flow_recip = fetch_aggregate(api_key, id_received, "unique", "Flow Name")
     flow_opens = fetch_aggregate(api_key, id_opened, "unique", "Flow Name")
     flow_clicks = fetch_aggregate(api_key, id_clicked, "unique", "Flow Name")
+    
+    # Gross sales is strictly the sum of email revenue to match the old dashboard
+    gross_sales = [None]*12
+    for i in range(12):
+        if camp_rev[i] is not None or flow_rev[i] is not None:
+            c = camp_rev[i] if camp_rev[i] is not None else 0
+            f = flow_rev[i] if flow_rev[i] is not None else 0
+            gross_sales[i] = c + f
     
     def safe_div(a, b):
         return (a/b) if (a is not None and b) else 0

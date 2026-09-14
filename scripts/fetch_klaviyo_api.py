@@ -15,20 +15,20 @@ def get_headers(api_key):
     }
 
 def get_metric_id(api_key, name):
-    url = f"https://a.klaviyo.com/api/metrics/?filter=equals(name,\"{name}\")"
+    url = "https://a.klaviyo.com/api/metrics/?page[size]=100"
     print(f"Buscando metrica: {name}...")
     try:
         res = requests.get(url, headers=get_headers(api_key))
-        print(f"  -> Respuesta HTTP {res.status_code}")
         if res.status_code == 200:
             data = res.json().get("data", [])
-            if data:
-                print(f"  -> EXITO: ID encontrado = {data[0]['id']}")
-                return data[0]["id"]
-            else:
-                print(f"  -> ADVERTENCIA: No se encontro ninguna metrica llamada '{name}'. Revisa el nombre exacto en Klaviyo.")
+            for item in data:
+                metric_name = item.get("attributes", {}).get("name", "")
+                if metric_name.lower() == name.lower():
+                    print(f"  -> EXITO: ID encontrado = {item['id']} para {metric_name}")
+                    return item["id"]
+            print(f"  -> ADVERTENCIA: No se encontro '{name}' en la cuenta.")
         else:
-            print(f"  -> ERROR de Klaviyo: {res.text}")
+            print(f"  -> ERROR de Klaviyo ({res.status_code}): {res.text}")
     except Exception as e:
         print(f"  -> ERROR de red: {e}")
     return None

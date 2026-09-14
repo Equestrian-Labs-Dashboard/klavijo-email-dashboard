@@ -53,13 +53,36 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", by=None):
             }
         }
     }
-    if by:
-        payload["data"]["attributes"]["by"] = [by]
+    
+    # Try primary dimension, if it fails we will retry with a fallback
+    primary_dim = by
+    if by == "Campaign Name": primary_dim = "$campaign"
+    if by == "Flow Name": primary_dim = "$flow"
+    
+    if primary_dim:
+        payload["data"]["attributes"]["by"] = [primary_dim]
         
     result_array = [0]*12
-    time.sleep(1.5) # Evitar limite 429 de Klaviyo
+    
+    # Klaviyo rate limit for aggregates is ~15 per minute, so we must sleep ~4 seconds
+    time.sleep(4.5)
+    
     try:
         res = requests.post(url, json=payload, headers=get_headers(api_key))
+        
+        # Fallback if dimension is invalid
+        if res.status_code == 400 and primary_dim:
+            print(f"  -> Dimension '{primary_dim}' invalida para {metric_id}. Reintentando con '$message'...")
+            payload["data"]["attributes"]["by"] = ["$message"]
+            time.sleep(4.5)
+            res = requests.post(url, json=payload, headers=get_headers(api_key))
+            
+            if res.status_code == 400:
+                 print(f"  -> Dimension '$message' tambien invalida. Reintentando sin agrupar...")
+                 del payload["data"]["attributes"]["by"]
+                 time.sleep(4.5)
+                 res = requests.post(url, json=payload, headers=get_headers(api_key))
+
         if res.status_code == 200:
             data = res.json().get("data", {}).get("attributes", {})
             dates = data.get("dates", [])
@@ -69,7 +92,7 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", by=None):
                 return result_array
                 
             target_series = []
-            if by:
+            if "by" in payload["data"]["attributes"]:
                 sums = [0]*len(dates)
                 for group in results_data:
                     dim_val = group.get("dimensions", [])
@@ -89,7 +112,7 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", by=None):
                 except:
                     pass
         else:
-            print(f"Error HTTP {res.status_code} al agrupar {metric_id} por {by}: {res.text}")
+            print(f"Error HTTP {res.status_code} al agrupar {metric_id}: {res.text}")
     except Exception as e:
         print(f"Exception al agrupar {metric_id}: {e}")
         
@@ -113,21 +136,21 @@ def process_bu(api_key, bu_name):
     if not id_placed and not id_received and not id_opened:
         print(f"⚠️ PELIGRO: No se encontraron los IDs.")
     else:
-        print("✅ Empezando a descargar los totales (esperando entre peticiones para evitar bloqueo 429)...")
+        print("✅ Empezando a descargar los totales (esperando 4.5s entre peticiones por seguridad)...")
     
     gross_sales = fetch_aggregate(api_key, id_placed, "sum_value")
     
-    camp_rev = fetch_aggregate(api_key, id_placed, "sum_value", "Campaign Name")
-    camp_conv = fetch_aggregate(api_key, id_placed, "unique", "Campaign Name")
-    camp_recip = fetch_aggregate(api_key, id_received, "unique", "Campaign Name")
-    camp_opens = fetch_aggregate(api_key, id_opened, "unique", "Campaign Name")
-    camp_clicks = fetch_aggregate(api_key, id_clicked, "unique", "Campaign Name")
+    camp_rev = fetch_aggregate(api_key, id_placed, "sum_value", "$campaign")
+    camp_conv = fetch_aggregate(api_key, id_placed, "unique", "$campaign")
+    camp_recip = fetch_aggregate(api_key, id_received, "unique", "$campaign")
+    camp_opens = fetch_aggregate(api_key, id_opened, "unique", "$campaign")
+    camp_clicks = fetch_aggregate(api_key, id_clicked, "unique", "$campaign")
     
-    flow_rev = fetch_aggregate(api_key, id_placed, "sum_value", "Flow Name")
-    flow_conv = fetch_aggregate(api_key, id_placed, "unique", "Flow Name")
-    flow_recip = fetch_aggregate(api_key, id_received, "unique", "Flow Name")
-    flow_opens = fetch_aggregate(api_key, id_opened, "unique", "Flow Name")
-    flow_clicks = fetch_aggregate(api_key, id_clicked, "unique", "Flow Name")
+    flow_rev = fetch_aggregate(api_key, id_placed, "sum_value", "$flow")
+    flow_conv = fetch_aggregate(api_key, id_placed, "unique", "$flow")
+    flow_recip = fetch_aggregate(api_key, id_received, "unique", "$flow")
+    flow_opens = fetch_aggregate(api_key, id_opened, "unique", "$flow")
+    flow_clicks = fetch_aggregate(api_key, id_clicked, "unique", "$flow")
     
     camp_open_rate = [ (camp_opens[i]/camp_recip[i]*100) if camp_recip[i] else 0 for i in range(12) ]
     camp_ctr = [ (camp_clicks[i]/camp_opens[i]*100) if camp_opens[i] else 0 for i in range(12) ]

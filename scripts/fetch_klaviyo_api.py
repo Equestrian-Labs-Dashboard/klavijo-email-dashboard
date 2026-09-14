@@ -15,7 +15,7 @@ def get_headers(api_key):
     }
 
 def get_metric_id(api_key, name):
-    url = "https://a.klaviyo.com/api/metrics/?page[size]=100"
+    url = "https://a.klaviyo.com/api/metrics/"
     print(f"Buscando metrica: {name}...")
     try:
         res = requests.get(url, headers=get_headers(api_key))

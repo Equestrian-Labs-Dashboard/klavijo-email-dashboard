@@ -9,21 +9,28 @@ MONTH_LABELS = ["ene-26", "feb-26", "mar-26", "abr-26", "may-26", "jun-26", "jul
 
 def get_headers(api_key):
     return {
-        "Authorization": f"Klaviyo-API-Key {api_key}",
+        "Authorization": f"Klaviyo-API-Key {api_key.strip()}",
         "accept": "application/json",
         "revision": "2024-02-15"
     }
 
 def get_metric_id(api_key, name):
     url = f"https://a.klaviyo.com/api/metrics/?filter=equals(name,\"{name}\")"
+    print(f"Buscando metrica: {name}...")
     try:
         res = requests.get(url, headers=get_headers(api_key))
+        print(f"  -> Respuesta HTTP {res.status_code}")
         if res.status_code == 200:
             data = res.json().get("data", [])
             if data:
+                print(f"  -> EXITO: ID encontrado = {data[0]['id']}")
                 return data[0]["id"]
+            else:
+                print(f"  -> ADVERTENCIA: No se encontro ninguna metrica llamada '{name}'. Revisa el nombre exacto en Klaviyo.")
+        else:
+            print(f"  -> ERROR de Klaviyo: {res.text}")
     except Exception as e:
-        print(f"Error fetching metric ID for {name}: {e}")
+        print(f"  -> ERROR de red: {e}")
     return None
 
 def fetch_aggregate(api_key, metric_id, measurement="unique", by=None):
@@ -53,8 +60,8 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", by=None):
         if res.status_code == 200:
             data = res.json().get("data", {}).get("attributes", {})
             dates = data.get("dates", [])
-            
             results_data = data.get("data", [])
+            
             if not results_data:
                 return result_array
                 
@@ -63,7 +70,7 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", by=None):
                 sums = [0]*len(dates)
                 for group in results_data:
                     dim_val = group.get("dimensions", [])
-                    if dim_val and dim_val[0]: # Not empty string or None
+                    if dim_val and dim_val[0]:
                         vals = group.get("measurements", {}).get(measurement, [])
                         for i, v in enumerate(vals):
                             sums[i] += v
@@ -79,19 +86,31 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", by=None):
                 except:
                     pass
         else:
-            print(f"Error {res.status_code} fetching metric {metric_id}: {res.text}")
+            print(f"Error HTTP {res.status_code} al agrupar {metric_id}: {res.text}")
     except Exception as e:
-        print(f"Exception fetching metric {metric_id}: {e}")
+        print(f"Exception al agrupar {metric_id}: {e}")
         
     return result_array
 
-def process_bu(api_key):
-    if not api_key: return create_empty_bu_data()
+def process_bu(api_key, bu_name):
+    print(f"\n=====================================")
+    print(f"PROCESANDO DATOS PARA: {bu_name}")
+    print(f"=====================================")
+    if not api_key:
+        print(f"❌ ERROR CRITICO: La llave API para {bu_name} esta VACIA o es NULA.")
+        return create_empty_bu_data()
+        
+    print(f"✅ Llave detectada. Verificando permisos y metricas...")
     
     id_placed = get_metric_id(api_key, "Placed Order")
     id_received = get_metric_id(api_key, "Received Email")
     id_opened = get_metric_id(api_key, "Opened Email")
     id_clicked = get_metric_id(api_key, "Clicked Email")
+    
+    if not id_placed and not id_received and not id_opened:
+        print(f"⚠️ PELIGRO: No se encontraron los IDs. Esto puede pasar si las metricas estan en espanol o falta permiso de lectura en la API Key.")
+    else:
+        print("✅ Empezando a descargar los totales...")
     
     gross_sales = fetch_aggregate(api_key, id_placed, "sum_value")
     
@@ -168,17 +187,19 @@ def fetch_data():
             "brand": "Klaviyo",
             "source": "Klaviyo API",
             "last_updated": date.today().isoformat(),
-            "note": "Datos obtenidos por API desde enero hasta diciembre."
+            "note": "Datos obtenidos por API."
         },
         "months": MONTH_LABELS,
         "bu_data": {
-            "CORRO": process_bu(corro_key),
-            "Cavali Club": process_bu(cavali_key)
+            "CORRO": process_bu(corro_key, "CORRO"),
+            "Cavali Club": process_bu(cavali_key, "CAVALI")
         }
     }
     
     OUTPUT_PATH.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    print("\n-------------------------------------")
     print("Klaviyo API data written to", OUTPUT_PATH)
+    print("-------------------------------------")
 
 if __name__ == "__main__":
     fetch_data()

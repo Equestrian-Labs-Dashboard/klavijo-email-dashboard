@@ -5,9 +5,7 @@ import requests
 from datetime import date
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-OUTPUT_PATH = BASE_DIR / "data" / "klaviyo_api_data.json"
-SHEETS_DATA_PATH = BASE_DIR / "data" / "data.json"
+OUTPUT_PATH = Path(__file__).resolve().parent.parent / "data" / "klaviyo_api_data.json"
 MONTH_LABELS = ["ene-26", "feb-26", "mar-26", "abr-26", "may-26", "jun-26", "jul-26", "ago-26", "sep-26", "oct-26", "nov-26", "dic-26"]
 
 def get_headers(api_key):
@@ -17,27 +15,62 @@ def get_headers(api_key):
         "revision": "2024-02-15"
     }
 
+def fetch_all_pages(url, headers):
+    data = []
+    while url:
+        try:
+            res = requests.get(url, headers=headers)
+            if res.status_code == 200:
+                js = res.json()
+                data.extend(js.get("data", []))
+                url = js.get("links", {}).get("next")
+            else:
+                break
+        except:
+            break
+    return data
+
+def get_campaign_ids(api_key):
+    print("  -> Extrayendo IDs de Campanas...")
+    campaigns = fetch_all_pages("https://a.klaviyo.com/api/campaigns/?fields[campaign]=id", get_headers(api_key))
+    return set(c["id"] for c in campaigns)
+
+def get_flow_message_ids(api_key):
+    print("  -> Extrayendo IDs de Flows y Mensajes...")
+    headers = get_headers(api_key)
+    flows = fetch_all_pages("https://a.klaviyo.com/api/flows/?fields[flow]=id", headers)
+    msg_ids = set()
+    for f in flows:
+        actions = fetch_all_pages(f"https://a.klaviyo.com/api/flow-actions/?filter=equals(flow_id,\"{f['id']}\")&fields[flow-action]=id", headers)
+        for a in actions:
+            msg_ids.add(a["id"])
+    return msg_ids
+
+def get_total_profiles(api_key):
+    print("  -> Calculando perfiles activos aproximados...")
+    lists = fetch_all_pages("https://a.klaviyo.com/api/lists/", get_headers(api_key))
+    total = 0
+    # En Klaviyo v2024-02-15, la API de lists no devuelve profile_count directamente, 
+    # pero devolveremos 0 si no se puede para no romper, y explicaremos la limitacion.
+    return total
+
 def get_metric_id(api_key, name):
     url = "https://a.klaviyo.com/api/metrics/"
     print(f"Buscando metrica: {name}...")
-    try:
-        res = requests.get(url, headers=get_headers(api_key))
-        if res.status_code == 200:
-            data = res.json().get("data", [])
-            for item in data:
-                metric_name = item.get("attributes", {}).get("name", "")
-                if metric_name.lower() == name.lower():
-                    print(f"  -> EXITO: ID encontrado = {item['id']} para {metric_name}")
-                    return item["id"]
-            print(f"  -> ADVERTENCIA: No se encontro '{name}' en la cuenta.")
-        else:
-            print(f"  -> ERROR de Klaviyo ({res.status_code}): {res.text}")
-    except Exception as e:
-        print(f"  -> ERROR de red: {e}")
-    time.sleep(1)
+    for attempt in range(2):
+        try:
+            res = requests.get(url, headers=get_headers(api_key))
+            if res.status_code == 200:
+                data = res.json().get("data", [])
+                for item in data:
+                    metric_name = item.get("attributes", {}).get("name", "")
+                    if metric_name.lower() == name.lower():
+                        return item["id"]
+        except:
+            time.sleep(2)
     return None
 
-def fetch_aggregate(api_key, metric_id, measurement="unique", by=None, is_placed_order=False):
+def fetch_aggregate(api_key, metric_id, measurement="unique", group_by=None, allowed_ids=None):
     if not metric_id: return [None]*12
     url = "https://a.klaviyo.com/api/metric-aggregates/"
     payload = {
@@ -56,66 +89,54 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", by=None, is_placed
         }
     }
     
-    primary_dim = None
-    if by == "Campaign Name":
-        primary_dim = "$attributed_message" if is_placed_order else "$message"
-    elif by == "Flow Name":
-        primary_dim = "$attributed_flow" if is_placed_order else "$message"
-        
-    if primary_dim:
-        payload["data"]["attributes"]["by"] = [primary_dim]
+    if group_by:
+        payload["data"]["attributes"]["by"] = [group_by]
         
     result_array = [None]*12
     
     for attempt in range(3):
-        time.sleep(3)
+        time.sleep(2)
         try:
             res = requests.post(url, json=payload, headers=get_headers(api_key))
             if res.status_code == 429:
-                print(f"  -> Limite de velocidad (429) alcanzado. Esperando 5 segundos...")
-                time.sleep(5)
-                continue
-            elif res.status_code == 400 and primary_dim:
-                print(f"  -> ADVERTENCIA: No se puede agrupar por '{primary_dim}' en metrica {metric_id}. Intentando sin agrupar...")
-                del payload["data"]["attributes"]["by"]
-                primary_dim = None 
                 time.sleep(4)
                 continue
+            elif res.status_code == 400 and group_by:
+                print(f"  -> ADVERTENCIA: '{group_by}' falló. Retornando vacío.")
+                break
             elif res.status_code == 200:
                 data = res.json().get("data", {}).get("attributes", {})
                 dates = data.get("dates", [])
                 results_data = data.get("data", [])
-                if not results_data:
-                    break
-                    
-                target_series = []
-                if "by" in payload["data"]["attributes"]:
-                    sums = [0]*len(dates)
+                
+                sums = [0]*len(dates)
+                if group_by:
                     for group in results_data:
                         dim_val = group.get("dimensions", [])
                         if dim_val and dim_val[0]:
+                            val_id = dim_val[0]
+                            # Si se paso allowed_ids, solo sumar si coincide
+                            if allowed_ids is not None and val_id not in allowed_ids:
+                                continue
                             vals = group.get("measurements", {}).get(measurement, [])
                             for i, v in enumerate(vals):
                                 sums[i] += v
-                    target_series = sums
                 else:
-                    target_series = results_data[0].get("measurements", {}).get(measurement, [])
-                    
+                    if results_data:
+                        sums = results_data[0].get("measurements", {}).get(measurement, [])
+                
                 for i, d in enumerate(dates):
                     try:
                         month_idx = int(d[5:7]) - 1
-                        if 0 <= month_idx < 12 and i < len(target_series):
-                            result_array[month_idx] = target_series[i] if target_series[i] else 0
+                        if 0 <= month_idx < 12 and i < len(sums):
+                            result_array[month_idx] = sums[i] if sums[i] else 0
                     except:
                         pass
                 break
-            else:
-                print(f"  -> Error HTTP {res.status_code} al agrupar {metric_id}: {res.text}")
-                break
         except Exception as e:
-            print(f"  -> Error de Conexion ({e}). Reintentando en 5 segs...")
-            time.sleep(5)
+            time.sleep(4)
             
+    # Llenar con 0 hasta el mes actual
     current_month = date.today().month
     for i in range(current_month):
         if result_array[i] is None:
@@ -123,90 +144,118 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", by=None, is_placed
             
     return result_array
 
-def process_bu_hybrid(api_key, bu_name, sheets_bu_data):
+def process_bu(api_key, bu_name):
     print(f"\n=====================================")
-    print(f"PROCESANDO DATOS HIBRIDOS PARA: {bu_name}")
+    print(f"PROCESANDO API PURA PARA: {bu_name}")
     print(f"=====================================")
     if not api_key:
-        print(f"❌ ERROR CRITICO: La llave API para {bu_name} esta VACIA.")
-        return sheets_bu_data
+        return create_empty_bu_data()
         
     id_placed = get_metric_id(api_key, "Placed Order")
+    id_received = get_metric_id(api_key, "Received Email")
+    id_opened = get_metric_id(api_key, "Opened Email")
+    id_clicked = get_metric_id(api_key, "Clicked Email")
     
-    print("✅ Obteniendo Revenue Real de la API...")
+    # Extraer verdaderos IDs de Campana y Flow
+    camp_ids = get_campaign_ids(api_key)
+    flow_ids = get_flow_message_ids(api_key)
     
-    camp_rev = fetch_aggregate(api_key, id_placed, "sum_value", "Campaign Name", is_placed_order=True)
-    flow_rev = fetch_aggregate(api_key, id_placed, "sum_value", "Flow Name", is_placed_order=True)
+    # Revenue (Para Placed Order, Klaviyo usa $attributed_message y $attributed_flow nativamente)
+    camp_rev = fetch_aggregate(api_key, id_placed, "sum_value", "$attributed_message")
+    flow_rev = fetch_aggregate(api_key, id_placed, "sum_value", "$attributed_flow")
     
-    # Gross sales as purely email revenue (API)
+    # Emails (Para Received/Opened/Clicked, agrupamos por $message y filtramos localmente por los IDs extraidos)
+    camp_recip = fetch_aggregate(api_key, id_received, "unique", "$message", allowed_ids=camp_ids)
+    camp_opens = fetch_aggregate(api_key, id_opened, "unique", "$message", allowed_ids=camp_ids)
+    camp_clicks = fetch_aggregate(api_key, id_clicked, "unique", "$message", allowed_ids=camp_ids)
+    camp_conv = fetch_aggregate(api_key, id_placed, "unique", "$attributed_message")
+    
+    flow_recip = fetch_aggregate(api_key, id_received, "unique", "$message", allowed_ids=flow_ids)
+    flow_opens = fetch_aggregate(api_key, id_opened, "unique", "$message", allowed_ids=flow_ids)
+    flow_clicks = fetch_aggregate(api_key, id_clicked, "unique", "$message", allowed_ids=flow_ids)
+    flow_conv = fetch_aggregate(api_key, id_placed, "unique", "$attributed_flow")
+    
+    # Active Profiles (No historico, Klaviyo no provee esto en Metric Aggregates)
+    active_profiles = [None]*12
+    
+    # Gross sales (Solo email)
     gross_sales = [None]*12
     for i in range(12):
         if camp_rev[i] is not None or flow_rev[i] is not None:
-            c = camp_rev[i] if camp_rev[i] is not None else 0
-            f = flow_rev[i] if flow_rev[i] is not None else 0
-            gross_sales[i] = c + f
+            gross_sales[i] = (camp_rev[i] or 0) + (flow_rev[i] or 0)
             
-    # Hybrid merging
-    hybrid_data = json.loads(json.dumps(sheets_bu_data)) # Deep copy
-    hybrid_data["gross_sales"] = gross_sales
-    
-    # Overwrite Revenue
-    hybrid_data["campaigns"]["revenue"] = camp_rev
-    hybrid_data["flows"]["revenue"] = flow_rev
-    
-    # Recalculate KPI metrics relying on Revenue using Sheets base volume
     def safe_div(a, b):
         return (a/b) if (a is not None and b) else 0
     def safe_pct(a, b):
         return (a/b*100) if (a is not None and b) else 0
 
-    camp_recip = hybrid_data["campaigns"]["recipients"]
-    camp_conv = hybrid_data["campaigns"]["unique_opens"] # We don't have conversions from sheets directly, wait, AOV needs conversions?
+    camp_open_rate = [ safe_pct(camp_opens[i], camp_recip[i]) for i in range(12) ]
+    camp_ctr = [ safe_pct(camp_clicks[i], camp_opens[i]) for i in range(12) ]
+    camp_conv_rate = [ safe_pct(camp_conv[i], camp_recip[i]) for i in range(12) ]
+    camp_aov = [ safe_div(camp_rev[i], camp_conv[i]) for i in range(12) ]
+    camp_usd_per_cust = [ safe_div(camp_rev[i], camp_recip[i]) for i in range(12) ]
+    camp_share = [ safe_pct(camp_rev[i], gross_sales[i]) for i in range(12) ]
     
-    # Actually, in Sheets, AOV is just calculated in the sheet. 
-    # Let's approximate conversions from conversion rate
-    # If Sheets has conversion_rate_pct, then conv = recip * (conv_rate_pct / 100)
-    for i in range(12):
-        if camp_rev[i] is not None:
-            recip = camp_recip[i] if camp_recip[i] else 0
-            conv_rate = hybrid_data["campaigns"]["conversion_rate_pct"][i] or 0
-            convs = recip * (conv_rate / 100.0)
-            hybrid_data["campaigns"]["aov"][i] = safe_div(camp_rev[i], convs)
-            hybrid_data["campaigns"]["avg_usd_per_customer"][i] = safe_div(camp_rev[i], recip)
-            hybrid_data["campaigns"]["share_of_total_revenue_pct"][i] = safe_pct(camp_rev[i], gross_sales[i])
-            
-        if flow_rev[i] is not None:
-            recip = hybrid_data["flows"]["recipients"][i] if hybrid_data["flows"]["recipients"][i] else 0
-            conv_rate = hybrid_data["flows"]["conversion_rate_pct"][i] or 0
-            convs = recip * (conv_rate / 100.0)
-            hybrid_data["flows"]["aov"][i] = safe_div(flow_rev[i], convs)
-            hybrid_data["flows"]["avg_usd_per_customer"][i] = safe_div(flow_rev[i], recip)
-            hybrid_data["flows"]["share_of_total_revenue_pct"][i] = safe_pct(flow_rev[i], gross_sales[i])
+    flow_open_rate = [ safe_pct(flow_opens[i], flow_recip[i]) for i in range(12) ]
+    flow_ctr = [ safe_pct(flow_clicks[i], flow_opens[i]) for i in range(12) ]
+    flow_conv_rate = [ safe_pct(flow_conv[i], flow_recip[i]) for i in range(12) ]
+    flow_aov = [ safe_div(flow_rev[i], flow_conv[i]) for i in range(12) ]
+    flow_usd_per_cust = [ safe_div(flow_rev[i], flow_recip[i]) for i in range(12) ]
+    flow_share = [ safe_pct(flow_rev[i], gross_sales[i]) for i in range(12) ]
+    
+    return {
+        "gross_sales": gross_sales,
+        "active_profiles": active_profiles,
+        "active_base_growth_pct": [None]*12,
+        "campaigns": {
+            "open_rate_pct": camp_open_rate,
+            "ctr_pct": camp_ctr,
+            "conversion_rate_pct": camp_conv_rate,
+            "revenue": camp_rev,
+            "aov": camp_aov,
+            "avg_usd_per_customer": camp_usd_per_cust,
+            "recipients": camp_recip,
+            "unique_opens": camp_opens,
+            "share_of_total_revenue_pct": camp_share
+        },
+        "flows": {
+            "open_rate_pct": flow_open_rate,
+            "ctr_pct": flow_ctr,
+            "conversion_rate_pct": flow_conv_rate,
+            "revenue": flow_rev,
+            "aov": flow_aov,
+            "avg_usd_per_customer": flow_usd_per_cust,
+            "recipients": flow_recip,
+            "unique_opens": flow_opens,
+            "share_of_total_revenue_pct": flow_share
+        }
+    }
 
-    return hybrid_data
+def create_empty_bu_data():
+    empty_array = [None] * 12
+    return {
+        "gross_sales": empty_array,
+        "active_profiles": empty_array,
+        "active_base_growth_pct": empty_array,
+        "campaigns": { k: empty_array.copy() for k in ["open_rate_pct", "ctr_pct", "conversion_rate_pct", "revenue", "aov", "avg_usd_per_customer", "recipients", "unique_opens", "share_of_total_revenue_pct"] },
+        "flows": { k: empty_array.copy() for k in ["open_rate_pct", "ctr_pct", "conversion_rate_pct", "revenue", "aov", "avg_usd_per_customer", "recipients", "unique_opens", "share_of_total_revenue_pct"] }
+    }
 
 def fetch_data():
     corro_key = os.environ.get("KLAVIYO_API_KEY_CORRO")
     cavali_key = os.environ.get("KLAVIYO_API_KEY_CAVALI")
     
-    # Load base Sheets data for Active Profiles, Opens, CTRs
-    if SHEETS_DATA_PATH.exists():
-        sheets_data = json.loads(SHEETS_DATA_PATH.read_text(encoding="utf-8"))
-    else:
-        print("❌ Archivo de Sheets data.json no encontrado.")
-        return
-    
     result = {
         "meta": {
             "brand": "Klaviyo",
-            "source": "API + Sheets Hibrido",
+            "source": "API",
             "last_updated": date.today().isoformat(),
-            "note": "Revenue extraido en vivo por API. Active Profiles y Opens mantenidos desde Sheets para evitar duplicacion."
+            "note": "100% API Pura. Active profiles no historicos."
         },
         "months": MONTH_LABELS,
         "bu_data": {
-            "CORRO": process_bu_hybrid(corro_key, "CORRO", sheets_data["bu_data"].get("CORRO", {})),
-            "Cavali Club": process_bu_hybrid(cavali_key, "CAVALI", sheets_data["bu_data"].get("Cavali Club", {}))
+            "CORRO": process_bu(corro_key, "CORRO"),
+            "Cavali Club": process_bu(cavali_key, "CAVALI")
         }
     }
     

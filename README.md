@@ -96,3 +96,28 @@ run del workflow los reemplaza con datos en vivo.
 - La hoja no trae un conteo directo de "# de campañas enviadas por mes" — por
   ahora la tarjeta usa "destinatarios del último envío" como proxy. Si hay una
   fuente con el conteo real, se puede reemplazar fácilmente.
+
+## Revisión y conciliación de fuentes
+
+- `index.html` identifica claramente **Google Sheet**: histórico consolidado.
+- `api.html` identifica claramente **API**: datos actuales de Klaviyo.
+- El workflow genera `reports/klaviyo_validation_report.md` con Gross Sales,
+  Revenue, Campaign Revenue, Total Profiles y Active Profiles para cada cuenta
+  y mes disponible. Un valor faltante se muestra como `No comparable`, nunca
+  como cero.
+- Active Profiles se cuenta en la Profiles API como perfiles con email no
+  suprimido. Klaviyo no expone un agregado histórico de ese indicador, por lo
+  que el workflow conserva un snapshot mensual al momento de la actualización.
+
+Antes de aprobar producción, ejecuta manualmente **Update Klaviyo data** con
+las claves de CORRO y Cavali Club configuradas y revisa el reporte. El export
+API incluido actualmente está marcado como inválido porque contiene solo ceros;
+no debe usarse como validación de Cavali.
+
+## Acceso de Berna
+
+GitHub Pages de un repositorio público no permite restringir el sitio a una
+sola persona. Para dar acceso solamente a Berna, usa un repositorio privado y
+agrega su cuenta de GitHub como colaboradora (Settings → Collaborators), o
+publica el dashboard detrás de un proveedor con autenticación. Los secretos de
+Klaviyo y Google deben permanecer exclusivamente en GitHub Actions Secrets.

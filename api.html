@@ -29,8 +29,8 @@
 
     <div class="page-head">
       <div>
-        <h1 class="page-title">Corro — Email Marketing <span style="font-size:0.5em;background:var(--brand-color);color:#fff;padding:2px 6px;border-radius:4px;vertical-align:middle;">API</span></h1>
-        <p class="page-meta">Klaviyo (API) · <span id="source-tag">live data</span> · updated <span id="last-updated">—</span> | <a href="index.html" style="color:var(--brand-color);text-decoration:none;font-weight:600;">&larr; Switch back to Sheets Data</a></p>
+        <h1 class="page-title">Corro — Email Marketing <span class="source-badge">API</span></h1>
+        <p class="page-meta">Fuente: API de Klaviyo (datos actuales) · actualizado <span id="last-updated">—</span> | <a href="index.html" class="source-link">&larr; Ver Google Sheet</a></p>
       </div>
       <span class="live-pill"><span class="live-dot"></span>Live</span>
     </div>
@@ -107,6 +107,16 @@
         <p class="kpi-card__value" id="kpi-flows-revenue">—</p>
         <p class="kpi-card__sub" id="kpi-flows-share">—</p>
       </article>
+      <article class="kpi-card" style="display: flex; flex-direction: column; justify-content: center;">
+        <p class="kpi-card__label">TOTAL PROFILES</p>
+        <p class="kpi-card__value" id="total-profiles-value">—</p>
+        <p class="kpi-card__sub">Snapshot API al actualizar</p>
+      </article>
+      <article class="kpi-card" style="display: flex; flex-direction: column; justify-content: center;">
+        <p class="kpi-card__label">REVENUE (YTD)</p>
+        <p class="kpi-card__value" id="revenue-value">—</p>
+        <p class="kpi-card__sub">Campaigns + Flows</p>
+      </article>
     </section>
 
     <!-- LEDGERS: Campaigns vs Flows -->
@@ -143,6 +153,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script>window.DATA_URL = 'data/klaviyo_api_data.json';</script>
-  <script src="assets/js/main.js?v=4"></script>
+  <script src="assets/js/main.js?v=5"></script>
 </body>
 </html>

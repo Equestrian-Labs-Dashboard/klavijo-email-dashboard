@@ -91,6 +91,9 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 }
 .page-title { font-size: 26px; font-weight: 600; }
 .page-meta { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.source-badge { display: inline-block; font-family: "Inter", system-ui, sans-serif; font-size: 11px; letter-spacing: .04em; background: var(--indigo); color: #fff; padding: 4px 8px; border-radius: 999px; vertical-align: middle; }
+.source-link { color: var(--indigo-deep); text-decoration: none; font-weight: 600; }
+.source-link:hover { text-decoration: underline; }
 .live-pill {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--sage-bg); color: var(--sage);
@@ -176,7 +179,7 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 /* KPI grid */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 28px;
 }
@@ -280,4 +283,7 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
   .ledgers { grid-template-columns: 1fr; }
   .filter__range { margin-left: 0; }
   .wrap { padding: 24px 16px 60px; }
+}
+@media (max-width: 1050px) and (min-width: 781px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
 }

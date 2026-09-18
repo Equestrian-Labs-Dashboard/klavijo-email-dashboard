@@ -46,13 +46,36 @@ def get_flow_message_ids(api_key):
             msg_ids.add(a["id"])
     return msg_ids
 
-def get_total_profiles(api_key):
-    print("  -> Calculando perfiles activos aproximados...")
-    lists = fetch_all_pages("https://a.klaviyo.com/api/lists/", get_headers(api_key))
-    total = 0
-    # En Klaviyo v2024-02-15, la API de lists no devuelve profile_count directamente, 
-    # pero devolveremos 0 si no se puede para no romper, y explicaremos la limitacion.
-    return total
+def get_profile_counts(api_key):
+    """Count current total and active email profiles through the Profiles API."""
+    print("  -> Contando perfiles totales y perfiles activos...")
+    url = "https://a.klaviyo.com/api/profiles/?page[size]=100&additional-fields[profile]=subscriptions"
+    total = active = 0
+    while url:
+        response = requests.get(url, headers=get_headers(api_key), timeout=30)
+        response.raise_for_status()
+        payload = response.json()
+        profiles = payload.get("data", [])
+        total += len(profiles)
+        for profile in profiles:
+            attributes = profile.get("attributes", {})
+            marketing = attributes.get("subscriptions", {}).get("email", {}).get("marketing", {})
+            # Klaviyo: active email profiles can be emailed and are not suppressed.
+            if attributes.get("email") and not marketing.get("suppression"):
+                active += 1
+        url = payload.get("links", {}).get("next")
+    return total, active
+
+def profile_snapshots(previous_bu, total, active):
+    """The API exposes a current count, not a historical aggregate; retain snapshots."""
+    total_history = list(previous_bu.get("total_profiles", [None] * 12))[:12]
+    active_history = list(previous_bu.get("active_profiles", [None] * 12))[:12]
+    total_history += [None] * (12 - len(total_history))
+    active_history += [None] * (12 - len(active_history))
+    current_index = date.today().month - 1
+    total_history[current_index] = total
+    active_history[current_index] = active
+    return total_history, active_history
 
 def get_metric_id(api_key, name):
     url = "https://a.klaviyo.com/api/metrics/"
@@ -144,12 +167,12 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", group_by=None, all
             
     return result_array
 
-def process_bu(api_key, bu_name):
+def process_bu(api_key, bu_name, previous_bu=None):
     print(f"\n=====================================")
     print(f"PROCESANDO API PURA PARA: {bu_name}")
     print(f"=====================================")
     if not api_key:
-        return create_empty_bu_data()
+        raise RuntimeError(f"Falta KLAVIYO_API_KEY para {bu_name}; se cancela para no publicar datos engañosos.")
         
     id_placed = get_metric_id(api_key, "Placed Order")
     id_received = get_metric_id(api_key, "Received Email")
@@ -175,8 +198,8 @@ def process_bu(api_key, bu_name):
     flow_clicks = fetch_aggregate(api_key, id_clicked, "unique", "$message", allowed_ids=flow_ids)
     flow_conv = fetch_aggregate(api_key, id_placed, "unique", "$attributed_flow")
     
-    # Active Profiles (No historico, Klaviyo no provee esto en Metric Aggregates)
-    active_profiles = [None]*12
+    total_profiles, active_now = get_profile_counts(api_key)
+    total_profiles_history, active_profiles = profile_snapshots(previous_bu or {}, total_profiles, active_now)
     
     # Gross sales (Solo email)
     gross_sales = [None]*12
@@ -205,6 +228,7 @@ def process_bu(api_key, bu_name):
     
     return {
         "gross_sales": gross_sales,
+        "total_profiles": total_profiles_history,
         "active_profiles": active_profiles,
         "active_base_growth_pct": [None]*12,
         "campaigns": {
@@ -235,6 +259,7 @@ def create_empty_bu_data():
     empty_array = [None] * 12
     return {
         "gross_sales": empty_array,
+        "total_profiles": empty_array.copy(),
         "active_profiles": empty_array,
         "active_base_growth_pct": empty_array,
         "campaigns": { k: empty_array.copy() for k in ["open_rate_pct", "ctr_pct", "conversion_rate_pct", "revenue", "aov", "avg_usd_per_customer", "recipients", "unique_opens", "share_of_total_revenue_pct"] },
@@ -245,19 +270,26 @@ def fetch_data():
     corro_key = os.environ.get("KLAVIYO_API_KEY_CORRO")
     cavali_key = os.environ.get("KLAVIYO_API_KEY_CAVALI")
     
+    try:
+        previous = json.loads(OUTPUT_PATH.read_text(encoding="utf-8")) if OUTPUT_PATH.exists() else {"bu_data": {}}
+    except (OSError, json.JSONDecodeError):
+        previous = {"bu_data": {}}
+
     result = {
         "meta": {
             "brand": "Klaviyo",
             "source": "API",
             "last_updated": date.today().isoformat(),
-            "note": "100% API Pura. Active profiles no historicos."
+            "note": "Datos API de Klaviyo. Perfiles activos y totales son snapshots del mes de actualización; el histórico se conserva en cada actualización."
         },
         "months": MONTH_LABELS,
-        "bu_data": {
-            "CORRO": process_bu(corro_key, "CORRO"),
-            "Cavali Club": process_bu(cavali_key, "CAVALI")
-        }
+        "bu_data": {}
     }
+
+    for bu_name, api_key in (("CORRO", corro_key), ("Cavali Club", cavali_key)):
+        result["bu_data"][bu_name] = process_bu(
+            api_key, bu_name, previous.get("bu_data", {}).get(bu_name)
+        )
     
     OUTPUT_PATH.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
 

@@ -42,7 +42,25 @@ async function loadData() {
   const url = window.DATA_URL || "data/data.json";
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error("Could not load " + url);
-  return res.json();
+  const data = await res.json();
+  // Older API exports wrote a full set of zeroes when credentials were missing.
+  // Treat that signature as unavailable, never as a legitimate performance result.
+  if (data.meta && data.meta.source && data.meta.source.toLowerCase().includes("api")) {
+    Object.values(data.bu_data || {}).forEach((bu) => {
+      const values = [bu.gross_sales, bu.campaigns?.revenue, bu.flows?.revenue, bu.active_profiles]
+        .flatMap((series) => Array.isArray(series) ? series : [])
+        .filter((value) => typeof value === "number");
+      if (values.length && values.every((value) => value === 0)) {
+        data.meta.note = "No hay una extracción API válida aún. Configure los secretos y ejecute Update Klaviyo data; no se muestran ceros como datos reales.";
+        const clear = (object) => Object.keys(object).forEach((key) => {
+          if (Array.isArray(object[key])) object[key] = object[key].map(() => null);
+          else if (object[key] && typeof object[key] === "object") clear(object[key]);
+        });
+        clear(bu);
+      }
+    });
+  }
+  return data;
 }
 
 // ---- Theme toggle ----
@@ -116,6 +134,14 @@ function sumYTD(arr, maxIdx) {
   return sum;
 }
 
+function lastAvailableIndex(buData, months) {
+  const series = [buData.gross_sales, buData.campaigns?.revenue, buData.flows?.revenue, buData.active_profiles];
+  for (let i = months.length - 1; i >= 0; i--) {
+    if (series.some((values) => Array.isArray(values) && values[i] !== null && values[i] !== undefined)) return i;
+  }
+  return 0;
+}
+
 function renderHero(buData, meta, idx, compareMode) {
   const currYTD = sumYTD(buData.gross_sales, idx);
   const priorYTD = buData.gross_sales_2025 ? sumYTD(buData.gross_sales_2025.values, idx) : null;
@@ -151,6 +177,9 @@ function renderKpiRow(buData, idx, compareMode) {
   const campYTD = sumYTD(buData.campaigns.revenue, idx);
   const flowYTD = sumYTD(buData.flows.revenue, idx);
   const totalYTD = campYTD + flowYTD;
+  const totalProfiles = buData.total_profiles ? buData.total_profiles[idx] : null;
+  document.getElementById("total-profiles-value").textContent = fmtInt(totalProfiles);
+  document.getElementById("revenue-value").textContent = fmtUSD(totalYTD);
 
   document.getElementById("kpi-campaigns-revenue").textContent = fmtUSD(campYTD);
   document.getElementById("kpi-campaigns-share").textContent = totalYTD > 0 ? fmtPct((campYTD / totalYTD) * 100, 1) + " of total revenue" : "—";
@@ -231,30 +260,16 @@ async function init() {
     const bu = buSelect ? buSelect.value : "CORRO";
     const defaultBuData = data.bu_data[bu];
     
-    // Default to the last closed month
-    const today = new Date();
-    const isCurrentYear = today.getFullYear() === 2026;
-    const currentMonth = today.getMonth(); // 0-11
-    
-    let maxAllowedIdx = 11;
-    if (isCurrentYear) {
-      maxAllowedIdx = currentMonth - 1; // Last closed month
-    }
-    
-    // Find last index with actual data, up to the max allowed
-    let defaultIdx = 0;
-    for (let i = 11; i >= 0; i--) {
-      if (defaultBuData.gross_sales[i] !== null && i <= maxAllowedIdx) {
-        defaultIdx = i;
-        break;
-      }
-    }
+    // Default to the latest period containing real data; never assume a fixed year.
+    const defaultIdx = lastAvailableIndex(defaultBuData, data.months);
     
     const state = { bu, monthIdx: defaultIdx, range: "month", compare: "mom" };
 
     if (buSelect) {
       buSelect.addEventListener("change", (e) => {
         state.bu = e.target.value;
+        state.monthIdx = lastAvailableIndex(data.bu_data[state.bu], data.months);
+        monthSelect.value = state.monthIdx;
         renderAll(data, state);
       });
     }

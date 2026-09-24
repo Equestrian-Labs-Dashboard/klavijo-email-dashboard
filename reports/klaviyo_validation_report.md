@@ -1,6 +1,6 @@
 # Reporte de conciliación — Klaviyo
 
-Generado: 2026-09-23
+Generado: 2026-09-24
 
 La API aporta datos actuales. Google Sheet es el histórico consolidado. `No comparable` significa que una fuente no entregó el KPI; nunca equivale a cero.
 
@@ -46,9 +46,9 @@ La API aporta datos actuales. Google Sheet es el histórico consolidado. `No com
 
 | KPI | API | Google Sheet | Diferencia (API - Sheet) |
 | --- | ---: | ---: | ---: |
-| Gross Sales | 20,273.68 | 12,023 | 8,250.68 |
-| Revenue | 20,273.68 | 12,023 | 8,250.68 |
-| Campaign Revenue | 11,815.42 | 3,565 | 8,250.42 |
+| Gross Sales | 20,409.78 | 12,023 | 8,386.78 |
+| Revenue | 20,409.78 | 12,023 | 8,386.78 |
+| Campaign Revenue | 11,951.52 | 3,565 | 8,386.52 |
 | Active Profiles | 0 | 46,280 | -46,280 |
 
 ### jun-26
@@ -82,11 +82,11 @@ La API aporta datos actuales. Google Sheet es el histórico consolidado. `No com
 
 | KPI | API | Google Sheet | Diferencia (API - Sheet) |
 | --- | ---: | ---: | ---: |
-| Gross Sales | 6,092.72 | — | No comparable |
-| Revenue | 6,092.72 | — | No comparable |
-| Campaign Revenue | 4,701 | — | No comparable |
-| Profiles | 200,101 | — | No comparable |
-| Active Profiles | 45,594 | — | No comparable |
+| Gross Sales | 6,466.84 | — | No comparable |
+| Revenue | 6,466.84 | — | No comparable |
+| Campaign Revenue | 4,888.06 | — | No comparable |
+| Profiles | 200,123 | — | No comparable |
+| Active Profiles | 45,601 | — | No comparable |
 
 ### oct-26
 

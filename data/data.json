@@ -2,8 +2,9 @@
   "meta": {
     "brand": "Klaviyo",
     "source": "Klaviyo",
-    "last_updated": "2026-09-24",
-    "note": "Actualizado automáticamente desde Google Sheets vía GitHub Actions."
+    "last_updated": "2026-09-25",
+    "note": "Actualizado automáticamente desde Google Sheets vía GitHub Actions.",
+    "latest_closed_month_index": 7
   },
   "months": [
     "ene-26",
@@ -21,15 +22,15 @@
   ],
   "bu_data": {
     "CORRO": {
-      "gross_sales": [
-        13311.0,
-        5954.0,
-        7011.0,
-        5312.0,
-        12023.0,
-        6918.0,
-        10002.0,
-        4101.0,
+      "total_profiles": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
         null,
         null,
         null,
@@ -44,6 +45,20 @@
         46210.0,
         46000.0,
         45614.0,
+        null,
+        null,
+        null,
+        null
+      ],
+      "gross_sales": [
+        13311.0,
+        5954.0,
+        7011.0,
+        5312.0,
+        12023.0,
+        6918.0,
+        10002.0,
+        4101.0,
         null,
         null,
         null,
@@ -321,12 +336,12 @@
       }
     },
     "Cavali Club": {
-      "gross_sales": [
-        0.0,
-        12348.0,
-        3891.0,
-        0.0,
-        14090.0,
+      "total_profiles": [
+        null,
+        null,
+        null,
+        null,
+        null,
         null,
         null,
         null,
@@ -341,6 +356,20 @@
         null,
         null,
         29776.0,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "gross_sales": [
+        0.0,
+        12348.0,
+        3891.0,
+        0.0,
+        14090.0,
         null,
         null,
         null,

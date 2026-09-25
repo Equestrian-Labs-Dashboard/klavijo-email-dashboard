@@ -109,7 +109,12 @@ def overlay_closed_profile_snapshots(gc, snapshot_sheet_id, result):
     if not snapshot_sheet_id:
         return
     try:
-        records = gc.open_by_key(snapshot_sheet_id).worksheet("Monthly Snapshots").get_all_records()
+        snapshot_book = gc.open_by_key(snapshot_sheet_id)
+        try:
+            records = snapshot_book.worksheet("Monthly Snapshots").get_all_records()
+        except gspread.WorksheetNotFound:
+            print("The dedicated snapshot sheet is ready but has no monthly snapshot yet.")
+            return
     except Exception as error:
         raise RuntimeError(f"Could not read the dedicated Klaviyo snapshot sheet: {error}") from error
 

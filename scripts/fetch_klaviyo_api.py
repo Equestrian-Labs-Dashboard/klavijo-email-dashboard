@@ -1,3 +1,4 @@
+import argparse
 import os
 import json
 import time
@@ -66,15 +67,21 @@ def get_profile_counts(api_key):
         url = payload.get("links", {}).get("next")
     return total, active
 
-def profile_snapshots(previous_bu, total, active):
-    """The API exposes a current count, not a historical aggregate; retain snapshots."""
+def profile_snapshots(previous_bu, total, active, snapshot_closed_month):
+    """Keep one immutable snapshot for the most recently closed month only."""
     total_history = list(previous_bu.get("total_profiles", [None] * 12))[:12]
     active_history = list(previous_bu.get("active_profiles", [None] * 12))[:12]
     total_history += [None] * (12 - len(total_history))
     active_history += [None] * (12 - len(active_history))
-    current_index = date.today().month - 1
-    total_history[current_index] = total
-    active_history[current_index] = active
+    if snapshot_closed_month:
+        # Daily refreshes must never modify a closed month.
+        # Klaviyo does not expose this population as a historical aggregate.
+        closed_index = date.today().month - 2
+        if closed_index >= 0:
+            if total_history[closed_index] is None:
+                total_history[closed_index] = total
+            if active_history[closed_index] is None:
+                active_history[closed_index] = active
     return total_history, active_history
 
 def get_metric_id(api_key, name):
@@ -167,7 +174,7 @@ def fetch_aggregate(api_key, metric_id, measurement="unique", group_by=None, all
             
     return result_array
 
-def process_bu(api_key, bu_name, previous_bu=None):
+def process_bu(api_key, bu_name, previous_bu=None, snapshot_closed_month=False):
     print(f"\n=====================================")
     print(f"PROCESANDO API PURA PARA: {bu_name}")
     print(f"=====================================")
@@ -199,7 +206,9 @@ def process_bu(api_key, bu_name, previous_bu=None):
     flow_conv = fetch_aggregate(api_key, id_placed, "unique", "$attributed_flow")
     
     total_profiles, active_now = get_profile_counts(api_key)
-    total_profiles_history, active_profiles = profile_snapshots(previous_bu or {}, total_profiles, active_now)
+    total_profiles_history, active_profiles = profile_snapshots(
+        previous_bu or {}, total_profiles, active_now, snapshot_closed_month
+    )
     
     # Gross sales (Solo email)
     gross_sales = [None]*12
@@ -266,7 +275,7 @@ def create_empty_bu_data():
         "flows": { k: empty_array.copy() for k in ["open_rate_pct", "ctr_pct", "conversion_rate_pct", "revenue", "aov", "avg_usd_per_customer", "recipients", "unique_opens", "share_of_total_revenue_pct"] }
     }
 
-def fetch_data():
+def fetch_data(snapshot_closed_month=False):
     corro_key = os.environ.get("KLAVIYO_API_KEY_CORRO")
     cavali_key = os.environ.get("KLAVIYO_API_KEY_CAVALI")
     
@@ -280,7 +289,8 @@ def fetch_data():
             "brand": "Klaviyo",
             "source": "API",
             "last_updated": date.today().isoformat(),
-            "note": "Datos API de Klaviyo. Perfiles activos y totales son snapshots del mes de actualización; el histórico se conserva en cada actualización."
+            "note": "Klaviyo API data. Active and total profiles are immutable snapshots captured only after each month closes.",
+            "latest_closed_month_index": date.today().month - 2
         },
         "months": MONTH_LABELS,
         "bu_data": {}
@@ -288,10 +298,13 @@ def fetch_data():
 
     for bu_name, api_key in (("CORRO", corro_key), ("Cavali Club", cavali_key)):
         result["bu_data"][bu_name] = process_bu(
-            api_key, bu_name, previous.get("bu_data", {}).get(bu_name)
+            api_key, bu_name, previous.get("bu_data", {}).get(bu_name), snapshot_closed_month
         )
     
     OUTPUT_PATH.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
 
 if __name__ == "__main__":
-    fetch_data()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--snapshot-closed-month", action="store_true", help="Capture the previous closed month once.")
+    args = parser.parse_args()
+    fetch_data(snapshot_closed_month=args.snapshot_closed_month)

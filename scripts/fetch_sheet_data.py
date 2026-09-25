@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from datetime import date
 from pathlib import Path
 
 import gspread
@@ -103,9 +104,35 @@ def set_by_path(d, path, value):
         d = d.setdefault(k, {})
     d[keys[-1]] = value
 
+def overlay_closed_profile_snapshots(gc, snapshot_sheet_id, result):
+    """Use the dedicated immutable month-close sheet for profile population."""
+    if not snapshot_sheet_id:
+        return
+    try:
+        records = gc.open_by_key(snapshot_sheet_id).worksheet("Monthly Snapshots").get_all_records()
+    except Exception as error:
+        raise RuntimeError(f"Could not read the dedicated Klaviyo snapshot sheet: {error}") from error
+
+    for record in records:
+        bu_name = str(record.get("business_unit", "")).strip()
+        month = str(record.get("snapshot_month", "")).strip()
+        if bu_name not in result["bu_data"] or len(month) != 7:
+            continue
+        try:
+            month_index = int(month[5:7]) - 1
+        except ValueError:
+            continue
+        if not 0 <= month_index < len(MONTH_LABELS):
+            continue
+        for field in ("active_profiles", "total_profiles"):
+            value = clean_number(record.get(field))
+            if value is not None:
+                result["bu_data"][bu_name][field][month_index] = value
+
 def main():
     creds_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
     sheet_id = os.environ.get("SHEET_ID")
+    snapshot_sheet_id = os.environ.get("KLAVIYO_SNAPSHOT_SHEET_ID")
     
     if not creds_json or not sheet_id:
         print("Faltan GOOGLE_SERVICE_ACCOUNT_JSON o SHEET_ID en el entorno.", file=sys.stderr)
@@ -122,6 +149,7 @@ def main():
             "source": "Klaviyo",
             "last_updated": None,
             "note": "Actualizado automáticamente desde Google Sheets vía GitHub Actions.",
+            "latest_closed_month_index": date.today().month - 2,
         },
         "months": MONTH_LABELS,
         "bu_data": {}
@@ -134,7 +162,7 @@ def main():
             print(f"Error cargando tab {tab_name}: {e}")
             continue
             
-        bu_result = {}
+        bu_result = {"total_profiles": [None] * len(MONTH_LABELS), "active_profiles": [None] * len(MONTH_LABELS)}
         for key, row in config["ROW_MAP"].items():
             start_col, end_col = config["MONTH_COLS"].split(":")
             raw_values = ws.get(f"{start_col}{row}:{end_col}{row}")
@@ -145,7 +173,8 @@ def main():
             
         result["bu_data"][tab_name] = bu_result
 
-    from datetime import date
+    overlay_closed_profile_snapshots(gc, snapshot_sheet_id, result)
+
     result["meta"]["last_updated"] = date.today().isoformat()
 
     OUTPUT_PATH.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")

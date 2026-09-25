@@ -107,7 +107,26 @@ run del workflow los reemplaza con datos en vivo.
   como cero.
 - Active Profiles se cuenta en la Profiles API como perfiles con email no
   suprimido. Klaviyo no expone un agregado histórico de ese indicador, por lo
-  que el workflow conserva un snapshot mensual al momento de la actualización.
+  que el dashboard sólo considera oficial el valor de un **mes cerrado**.
+
+## Registro mensual exclusivo de perfiles
+
+Crear una Google Sheet nueva llamada **Klaviyo Profile Snapshots** y compartirla
+con el mismo service account que usa el dashboard. Guardar su ID como el secreto
+de GitHub `KLAVIYO_SNAPSHOT_SHEET_ID`. No se debe usar la hoja histórica general
+para este registro.
+
+El workflow **Close Klaviyo profile snapshots** se ejecuta el día 1 de cada mes
+después del cierre y escribe una sola fila inmutable por Business Unit y período
+en la pestaña `Monthly Snapshots`. Sus columnas son:
+
+`snapshot_month`, `business_unit`, `active_profiles`, `total_profiles`,
+`source`, `captured_at_utc`, `status`, `notes`.
+
+El workflow diario actualiza ingresos y métricas operativas, pero no modifica
+ningún snapshot de perfiles. Tanto la vista API como la vista Google Sheet abren
+por defecto en el último mes cerrado; los meses futuros o en curso no se usan
+para Active Profiles ni Total Profiles.
 
 Antes de aprobar producción, ejecuta manualmente **Update Klaviyo data** con
 las claves de CORRO y Cavali Club configuradas y revisa el reporte. El export

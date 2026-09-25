@@ -142,6 +142,12 @@ function lastAvailableIndex(buData, months) {
   return 0;
 }
 
+function defaultClosedMonthIndex(data, buData) {
+  const index = Number(data.meta?.latest_closed_month_index);
+  if (Number.isInteger(index) && index >= 0 && index < data.months.length) return index;
+  return lastAvailableIndex(buData, data.months);
+}
+
 function renderHero(buData, meta, idx, compareMode) {
   const currYTD = sumYTD(buData.gross_sales, idx);
   const priorYTD = buData.gross_sales_2025 ? sumYTD(buData.gross_sales_2025.values, idx) : null;
@@ -260,15 +266,15 @@ async function init() {
     const bu = buSelect ? buSelect.value : "CORRO";
     const defaultBuData = data.bu_data[bu];
     
-    // Default to the latest period containing real data; never assume a fixed year.
-    const defaultIdx = lastAvailableIndex(defaultBuData, data.months);
+    // Profile counts only become official after a month closes.
+    const defaultIdx = defaultClosedMonthIndex(data, defaultBuData);
     
     const state = { bu, monthIdx: defaultIdx, range: "month", compare: "mom" };
 
     if (buSelect) {
       buSelect.addEventListener("change", (e) => {
         state.bu = e.target.value;
-        state.monthIdx = lastAvailableIndex(data.bu_data[state.bu], data.months);
+        state.monthIdx = defaultClosedMonthIndex(data, data.bu_data[state.bu]);
         monthSelect.value = state.monthIdx;
         renderAll(data, state);
       });

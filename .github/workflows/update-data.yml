@@ -27,6 +27,7 @@ jobs:
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
+          KLAVIYO_SNAPSHOT_SHEET_ID: ${{ secrets.KLAVIYO_SNAPSHOT_SHEET_ID }}
         run: python scripts/fetch_sheet_data.py
 
       - name: Fetch data from Klaviyo API

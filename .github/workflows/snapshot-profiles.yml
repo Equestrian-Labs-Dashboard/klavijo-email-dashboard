@@ -1,0 +1,44 @@
+name: Close Klaviyo profile snapshots
+
+on:
+  schedule:
+    # Run just after the prior calendar month closes (05:10 UTC on the 1st).
+    # This is 00:10 EST / 01:10 EDT for the Klaviyo reporting timezone.
+    - cron: "10 5 1 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  close-profiles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r scripts/requirements.txt
+      - name: Capture the prior closed month from Klaviyo
+        env:
+          KLAVIYO_API_KEY_CORRO: ${{ secrets.KLAVIYO_API_KEY_CORRO }}
+          KLAVIYO_API_KEY_CAVALI: ${{ secrets.KLAVIYO_API_KEY_CAVALI }}
+        run: python scripts/fetch_klaviyo_api.py --snapshot-closed-month
+      - name: Save immutable profile snapshot in the dedicated Google Sheet
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          KLAVIYO_SNAPSHOT_SHEET_ID: ${{ secrets.KLAVIYO_SNAPSHOT_SHEET_ID }}
+        run: python scripts/sync_profile_snapshots.py
+      - name: Refresh the Google Sheet dashboard data with closed snapshots
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          KLAVIYO_SNAPSHOT_SHEET_ID: ${{ secrets.KLAVIYO_SNAPSHOT_SHEET_ID }}
+        run: python scripts/fetch_sheet_data.py
+      - name: Commit closed-month data
+        run: |
+          git config user.name "klaviyo-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/data.json data/klaviyo_api_data.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: close Klaviyo profile snapshot"
+          git push

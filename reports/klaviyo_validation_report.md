@@ -1,6 +1,6 @@
 # Reporte de conciliación — Klaviyo
 
-Generado: 2026-09-25
+Generado: 2026-09-26
 
 La API aporta datos actuales. Google Sheet es el histórico consolidado. `No comparable` significa que una fuente no entregó el KPI; nunca equivale a cero.
 
@@ -82,9 +82,9 @@ La API aporta datos actuales. Google Sheet es el histórico consolidado. `No com
 
 | KPI | API | Google Sheet | Diferencia (API - Sheet) |
 | --- | ---: | ---: | ---: |
-| Gross Sales | 6,613.09 | — | No comparable |
-| Revenue | 6,613.09 | — | No comparable |
-| Campaign Revenue | 5,034.31 | — | No comparable |
+| Gross Sales | 7,196.87 | — | No comparable |
+| Revenue | 7,196.87 | — | No comparable |
+| Campaign Revenue | 5,585.11 | — | No comparable |
 | Profiles | 200,123 | — | No comparable |
 | Active Profiles | 45,601 | — | No comparable |
 
